@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Basic usage example for the m-memory dual-layer memory system.
 
-Run with:
-    python examples/basic_usage.py
+Install:  pip install m-memory
+Run:      python examples/basic_usage.py
 
 No external API keys required — uses a fake (deterministic) embedding
 backend and a scripted LLM adapter.
