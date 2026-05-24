@@ -1,0 +1,74 @@
+[project]
+name = "m-memory"
+version = "0.1.0"
+description = "A dual-layer memory system for AI agents with incremental clustering, graph-based retrieval, and conflict resolution."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "you@example.com"}
+]
+keywords = ["ai", "agent", "memory", "rag", "knowledge-graph", "long-term-memory"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "pydantic>=2.0",            # 数据模型
+    "numpy>=1.24",              # 向量运算
+    "faiss-cpu>=1.7",           # 默认向量存储后端
+    "openai>=1.0",              # LLM 适配（可按需替换）
+    "structlog>=23.0",          # 结构化日志
+    "networkx>=3.0",            # 图存储与游走
+]
+
+[project.optional-dependencies]
+# 不同向量存储后端，保持接口一致，方便切换
+usearch = ["usearch>=2.0"]
+chromadb = ["chromadb>=0.4"]
+# 开发与测试
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-mock>=3.10",
+    "pytest-cov>=4.0",
+    "mypy>=1.0",
+    "ruff>=0.1",
+    "black>=23.0",
+]
+docs = [
+    "sphinx>=7.0",
+    "myst-parser>=2.0",
+]
+
+[project.scripts]
+m-memory = "memory_system.cli:main"   # 如果未来有 CLI
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+exclude = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --cov=memory_system --cov-report=term-missing"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
