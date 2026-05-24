@@ -10,7 +10,7 @@ A dual-layer memory system for AI agents with **incremental clustering**,
 ## Quick Start (5 minutes)
 
 ```bash
-pip install -e ".[dev]"
+pip install m-memory
 ```
 
 ```python
@@ -76,7 +76,9 @@ See [`ARCHITECTURE_DESIGN.md`](ARCHITECTURE_DESIGN.md) for the full design spec.
 ## Development
 
 ```bash
-# Install with dev dependencies
+# Clone and install with dev dependencies
+git clone https://github.com/RobinElysia/M-Memory.git
+cd M-Memory
 pip install -e ".[dev]"
 
 # Run tests

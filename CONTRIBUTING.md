@@ -21,7 +21,9 @@ current layer before proceeding.
 ## Development Workflow
 
 ```bash
-# 1. Install in editable mode with dev dependencies
+# 1. Clone and install in editable mode with dev dependencies
+git clone https://github.com/RobinElysia/M-Memory.git
+cd M-Memory
 pip install -e ".[dev]"
 
 # 2. Run all quality gates
