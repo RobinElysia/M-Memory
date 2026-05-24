@@ -1,2 +1,0 @@
-[console_scripts]
-m-memory = memory_system.cli:main
