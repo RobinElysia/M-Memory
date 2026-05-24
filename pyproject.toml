@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A dual-layer memory system for AI agents with incremental clustering, graph-based retrieval, and conflict resolution."
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Your Name", email = "you@example.com"}
 ]
