@@ -1,113 +1,92 @@
-# API Reference
+# API 参考（自动生成）
 
-## MemoryRetrievalEngine
+以下文档从 Python 源码 docstring 自动生成，始终与代码同步。
 
-The top-level API. Create one instance, then ingest and search.
+## 核心接口
 
-```python
-from memory_system.retrieval import MemoryRetrievalEngineImpl
+::: memory_system.interfaces.VectorStore
+    options:
+      members:
+        - embed
+        - add
+        - search
+        - remove
+        - count
 
-engine = MemoryRetrievalEngineImpl(
-    config=MemorySystemConfig(),
-    vector_store=NumpyVectorStore(dim=1536),
-    graph_store=NetworkXGraphStore(),
-    llm=FakeLLMAdapter(),
-)
-```
+::: memory_system.interfaces.LLMAdapter
+    options:
+      members:
+        - complete
+        - chat
 
-### `ingest(summary: str, content: str, confidence: float = 1.0) -> str`
+::: memory_system.interfaces.GraphStore
+    options:
+      members:
+        - add_node
+        - add_edge
+        - traverse
+        - get_out_edges
+        - remove_edge
 
-Full ingestion pipeline:
-1. Embed summary (A) and content (C)
-2. Find candidate buckets via Medoid similarity
-3. Ask LLM to decide bucket assignment
-4. Physically place node in primary bucket
-5. Create cross-bucket edges if LLM recommends
-6. Update bucket Medoid
+::: memory_system.interfaces.BucketManager
+    options:
+      members:
+        - find_candidates
+        - assign_to_bucket
+        - create_bucket
+        - split_bucket
+        - dormancy_check
+        - wake_bucket
 
-Returns the new node's ID string.
+::: memory_system.interfaces.MemoryRetrievalEngine
+    options:
+      members:
+        - search
+        - resolve_conflicts
+        - ingest
 
-### `search(query: str, max_hops: int | None = None, weight_threshold: float | None = None) -> SearchResult`
+## 实现类
 
-Two-layer retrieval:
-- **Layer 1**: Bucket coarse screen → in-bucket fine search → graph expansion
-- **Layer 2**: Weighted re-rank → LLM conflict detection → stale marking
+::: memory_system.retrieval.MemoryRetrievalEngineImpl
+    options:
+      members:
+        - ingest
+        - search
+        - resolve_conflicts
 
-Returns `SearchResult(nodes=list[MemoryNode], scores=list[float])`.
+::: memory_system.bucket_manager.BucketManagerImpl
 
-### `resolve_conflicts(candidates: list[MemoryNode], query: str) -> list[MemoryNode]`
+::: memory_system.graph_engine.NetworkXGraphStore
 
-Standalone conflict resolution on an arbitrary set of nodes.
+::: memory_system.vector_store.NumpyVectorStore
 
-## BucketManager
+::: memory_system.cleanup.CleanupScheduler
 
-```python
-from memory_system.bucket_manager import BucketManagerImpl
-```
+## 数据模型
 
-### Key Methods
+::: memory_system.models.MemoryNode
 
-| Method | Description |
-|--------|-------------|
-| `create_bucket(node)` | New bucket with node as initial Medoid |
-| `find_candidates(node)` | Top-k candidate buckets by Medoid similarity |
-| `assign_to_bucket(node, bucket, cross_links)` | Place node + cross-bucket edges |
-| `dormancy_check()` | Mark inactive buckets dormant |
-| `wake_bucket(id)` | Reactivate dormant bucket |
-| `split_bucket(bucket)` | Split overgrown bucket (placeholder) |
+::: memory_system.models.Bucket
 
-## VectorStore
+::: memory_system.models.Medoid
 
-```python
-from memory_system.vector_store import NumpyVectorStore
-from memory_system.interfaces import VectorStore
-```
+::: memory_system.models.Edge
 
-Implement `VectorStore` to swap backends (FAISS, Chroma, USearch, etc.).
+::: memory_system.models.SearchResult
 
-### Required Methods
+## 工具函数
 
-- `embed(text) -> NDArray` — text → dense vector
-- `add(vectors, metadata) -> list[str]` — batch insert
-- `search(query_vector, top_k) -> list[tuple[str, float]]` — similarity search
-- `remove(ids)` — delete by ID
-- `count() -> int` — total vectors
+::: memory_system.llm_decision
+    options:
+      members:
+        - build_bucket_assignment_prompt
+        - build_conflict_detection_prompt
+        - parse_bucket_assignment_response
+        - parse_conflict_detection_response
 
-## GraphStore
-
-```python
-from memory_system.graph_engine import NetworkXGraphStore
-from memory_system.interfaces import GraphStore
-```
-
-### Required Methods
-
-- `add_node(id, attrs)` — register vertex
-- `add_edge(from, to, type, weight) -> str` — create directed edge
-- `traverse(starts, max_hops, threshold) -> list[TraversalPath]` — BFS walk
-- `get_out_edges(id, type?)` — outgoing edges
-- `remove_edge(id)` — delete edge
-
-## Configuration
-
-```python
-from memory_system.config import MemorySystemConfig
-
-config = MemorySystemConfig()
-config.bucket.top_k = 3       # candidate buckets for assignment
-config.bucket.top_m = 5       # buckets retrieved in search
-config.graph.max_hops = 2     # graph walk depth
-config.conflict.alpha = 0.5   # semantic similarity weight
-config.conflict.beta = 0.3    # recency weight
-config.conflict.gamma = 0.2   # confidence weight
-```
-
-See `memory_system/config.py` for all parameters and defaults.
-
-## Data Models
-
-```python
-from memory_system.models import MemoryNode, Bucket, Medoid, Edge, SearchResult
-```
-
-See `memory_system/models.py` for field-level documentation.
+::: memory_system.fake_llm
+    options:
+      members:
+        - FakeLLMAdapter
+        - create_assignment_decision
+        - create_conflict_response

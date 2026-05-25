@@ -10,6 +10,7 @@ venv/
 # ── Build & distribution ─────────────────────────────────────────────
 dist/
 build/
+site/
 *.egg-info/
 *.egg
 
