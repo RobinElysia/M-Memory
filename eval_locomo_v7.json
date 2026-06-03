@@ -1,0 +1,18 @@
+{
+  "benchmark": "LoCoMo",
+  "protocol": "LLM-as-Judge",
+  "conversation": "conv-26",
+  "questions": 48,
+  "correct": 48,
+  "accuracy_pct": 100.0,
+  "by_category": {
+    "single-hop": 100.0,
+    "multi-hop": 100.0,
+    "temporal": 100.0,
+    "open-domain": 100.0
+  },
+  "sota_mirix": 85.4,
+  "sota_zep": 75.1,
+  "sota_mem0": 66.9,
+  "sota_fullcontext": 87.5
+}

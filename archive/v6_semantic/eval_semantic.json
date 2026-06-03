@@ -1,0 +1,9 @@
+{
+  "overall_pct": 96.2,
+  "questions": 52,
+  "correct": 50,
+  "llm_calls": 243,
+  "tokens": 80558,
+  "embedding_calls": 388,
+  "mode": "semantic"
+}

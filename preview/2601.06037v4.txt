@@ -1,0 +1,1070 @@
+T ELE M EM: Building Long-Term and Multimodal Memory for Agentic AI
+Chunliang Chen∗ , Ming Guan∗ , Xiao Lin∗ , Luxi Lin∗ , Jiaxu Li∗ , Qiyi Wang∗ ,
+Xiangyu Chen, Jixiang Luo, Changzhi Sun† , Dell Zhang# , Xuelong Li#
+Institute of Artificial Intelligence (TeleAI), China Telecom
+
+arXiv:2601.06037v4 [cs.CL] 22 Jan 2026
+
+https://github.com/TeleAI-UAGI/TeleMem
+
+Abstract
+Large language models (LLMs) achieve strong performance
+on many NLP tasks but remain limited in long-term interactive settings due to finite context windows and degraded recall over extended histories. Retrieval-augmented
+generation (RAG) alleviates this bottleneck, yet conventional pipelines treat memories as independent fragments
+and lack principled mechanisms for consolidation, update,
+and causal organization, leading to fragmented context and
+unstable long-horizon reasoning. We propose T ELE M EM, a
+unified long-term and multimodal memory system that organizes memory as structured and evolvable semantic trajectories. T ELE M EM maintains coherent and hallucinationresistant user profiles by extracting only dialogue-grounded
+narrative units, and amortizes write costs through a structured writing pipeline that batches summaries, retrieves
+related memories, clusters semantically aligned entries,
+and performs LLM-based consolidation before persistent
+storage. At the retrieval level, memories are organized
+into a threaded directed acyclic graph (DAG), enabling
+dependency-aware closure-based retrieval that reconstructs
+coherent causal context for long-horizon reasoning. In addition, T ELE M EM integrates a multimodal memory module
+with a ReAct-style reasoning framework to support closedloop observe–think–act reasoning over complex video content. Extensive experiments demonstrate that T ELE M EM
+outperforms the state-of-the-art Mem0 baseline by 19% in
+accuracy on the ZH-4O benchmark, while reducing token
+usage by 43% and achieving a 2.1× speedup.
+
+1. Introduction
+2. Introduction
+Large language models (LLMs) have demonstrated remarkable performance across a wide range of natural language
+processing tasks [5, 29, 37]. However, their effectiveness in
+* Equal contribution. † Project lead. # Corresponding authors.
+
+long-term interactive settings remains fundamentally constrained by the finite context window of Transformer architectures. Even though recent long-context models can process hundreds of thousands of tokens [11], simply enlarging
+the context window does not resolve the core challenge. As
+interaction histories grow, models struggle to allocate attention to distant yet critical information, leading to degraded
+recall of user-specific facts and unstable long-horizon reasoning [13]. These limitations hinder the deployment of
+LLM-based agents in scenarios that require persistent personalization, continuous learning, and traceable decision
+making.
+Beyond capacity, a more fundamental issue lies in how
+long-term information is represented and organized. Effective memory must preserve not only semantic similarity, but
+also temporal order, causal dependency, and state evolution
+across interactions. Without such structure, retrieved contexts easily become fragmented, omit critical prerequisites,
+and induce inconsistent reasoning.
+Retrieval-augmented generation (RAG) has emerged as
+a practical solution to extend effective memory beyond the
+native context window by encoding past interactions into
+vector embeddings and retrieving relevant entries via semantic search [7, 21, 44]. While effective at scaling storage capacity, conventional RAG systems treat memories
+as independent and unordered fragments. Such designs
+lack principled mechanisms for updating, consolidating, or
+deleting previously written memories, making it difficult to
+accommodate evolving user states, resolve contradictions,
+or preserve causal consistency over long horizons.
+Recent work has therefore explored more structured
+and adaptive memory architectures that extend RAG with
+mechanisms for abstraction, forgetting, and dynamic updates [36, 40]. MemoryBank [45] introduces a decay mechanism inspired by the Ebbinghaus forgetting curve to prioritize salient information. Mem0 [2] enables meaning-aware
+memory operations by allowing an LLM to extract atomic
+facts and decide whether to add, update, delete, or ignore
+them in a streaming manner. Rsum [25] applies hierarchical summarization to separate short-term details from long-
+
+term abstractions, while Zep [22] organizes dialogue history
+as a temporal knowledge graph to capture causal dependencies. Although these systems significantly advance longterm memory management, several practical challenges remain.
+First, maintaining a consistent and reliable user profile remains difficult. Many systems rely on large predefined schemas, while real conversations provide sparse
+and noisy signals. This mismatch often induces hallucinated attributes, incomplete fields, and unnecessary structural complexity. Second, write efficiency remains low.
+Most pipelines invoke retrieval and LLM-based decision
+making at every dialogue turn, resulting in frequent datastore writes, excessive API calls, and degraded throughput
+and latency. Third, multimodal reasoning capabilities are
+still limited. Existing memory systems are predominantly
+text-centric and struggle to integrate or reason over visual,
+auditory, and temporal information, restricting their applicability in realistic embodied or multimedia environments.
+To address these challenges, we propose T ELE M EM, a
+unified long-term and multimodal memory system. T ELE M EM organizes memory as structured and evolvable semantic trajectories rather than isolated fragments, enabling dependency-aware reasoning and consistent context
+restoration. It extracts dialogue-supported narrative units
+to avoid schema-driven hallucinations and maintain compact, reliable user profiles. At the storage level, T ELE M EM employs a structured writing pipeline that batches
+summaries, retrieves related memories, clusters semantically aligned entries, and performs LLM-based consolidation before committing them to persistent storage. This design amortizes write costs by reducing per-turn LLM invocations, de-duplicates fragmented information, and substantially improves throughput and token efficiency. At
+the retrieval level, memories are organized into a threaded
+directed acyclic graph (DAG), enabling closure-based retrieval that reconstructs coherent causal context for longhorizon reasoning. In addition, T ELE M EM incorporates
+a multimodal memory module that converts raw video
+streams into event and object memories, and integrates a
+ReAct-style reasoning framework [38] to support closedloop observe–think–act reasoning over complex visual content.
+In summary, our main contributions are:
+1. We introduce T ELE M EM, a unified long-term and multimodal memory framework that maintains coherent and
+hallucination-resistant user profiles through narrativedriven memory extraction and structured organization.
+2. We propose a structured memory graph with threaded
+dependencies and closure-based retrieval, enabling
+dependency-aware context reconstruction and stable
+long-horizon reasoning.
+3. We design an efficient memory writing pipeline that per-
+
+forms batched retrieval, semantic clustering, and LLMbased consolidation, substantially reducing storage redundancy, token overhead, and end-to-end latency.
+4. We develop a multimodal memory module with ReActstyle reasoning, enabling end-to-end observe–think–act
+capabilities for complex video understanding.
+5. Extensive experiments demonstrate that T ELE M EM outperforms the state-of-the-art Mem0 baseline by 19% in
+accuracy on the ZH-4O benchmark, while reducing token usage by 43% and achieving a 2.1× speedup.
+
+3. T ELE M EM System
+Overview. Long-horizon agents require memory that preserves not only semantic similarity but also the continuity
+of experience, including temporal order, causal dependency,
+and state evolution. Conventional retrieval-augmented generation (RAG) systems store memories as independent vector chunks, which often leads to fragmented context, missing prerequisites, and unstable reasoning when interactions
+span long time horizons. To support stable accumulation
+and continuous learning, memory must be threaded into
+coherent trajectories rather than retrieved as isolated fragments.
+We address this requirement by organizing long-term
+memory as a directed acyclic graph (DAG), where memory states are connected through explicit structural relations to form traceable memory threads (Sec. 3.1), upgrading memory from an unordered collection of embeddings
+to a structured and evolvable substrate that supports causal
+reasoning and context restoration. The overall architecture
+tightly couples three functional components: (1) a representation layer that converts raw textual and multimodal interactions into semantic memory states and performs consolidation and updates (Sec. 3.2); (2) a graph layer that incrementally organizes these states into a persistent memory
+graph; and (3) a memory reading mechanism that performs
+dependency-aware closure-based retrieval to reconstruct coherent causal context for downstream reasoning (Sec. 3.3).
+This unified design supports scalable memory growth while
+preserving structural consistency and low-latency access in
+practice (Fig. 1).
+
+3.1. Memory Graph Formulation
+We formalize long-term memory as a directed acyclic graph
+(DAG)
+G = (V, E),
+(1)
+where V denotes the set of memory nodes and E denotes
+directed edges. Each node vi ∈ V is associated with an
+effective timestamp τ (vi ), which reflects the semantic validity order rather than wall-clock time. All edges satisfy
+the strict temporal constraint
+τ (p) < τ (vi ),
+
+(2)
+
+Threaded Memory
+
+Linear Memory
+
+1
+2
+
+Root
+
+1
+3
+
+Retrieval
+
+4
+
+3
+5
+
+5
+6
+
+1
+3
+4
+
+•
+•
+
+2
+5
+
+Closure-based Retrieval
+
+(Chronologically Ordered)
+
+2
+3
+
+6
+5
+
+Fragmented Memory
+No Causal Structure
+
+Figure 1. Comparison between conventional linear memory and the proposed threaded memory with closure-based retrieval. Left: Linear
+memory retrieves isolated entries based on similarity, resulting in fragmented memories with a lack of causal structure. Right: Threaded
+memory organizes memory states as a directed acyclic graph (DAG). Given a query seed (gray nodes), closure-based retrieval expands
+along dependency edges to recover all prerequisite nodes, which are then serialized in chronological order to reconstruct coherent causal
+context.
+
+which guarantees acyclic evolution. To avoid isolated memory fragments and ensure global connectivity, we introduce
+a virtual root node v0 that anchors nodes without explicit
+predecessors.
+3.1.1. The Node: A Unified Semantic Container
+Each node represents a stabilized semantic memory state
+produced by the representation layer and serves as a unified
+container for long-term knowledge.
+
+Semantic categories. Nodes may encode heterogeneous
+semantic states, including: (1) profile states, summarizing
+stable user and bot attributes (Fig. 3); (2) event states, capturing dynamic interaction-level semantics from textual dialogue or video clips (Fig. 4, Fig. 5); and (3) entity and object
+states, representing persistent multimodal entities and their
+temporal evolution (Fig. 6).
+
+Node content. Each node stores three components: (i) a
+consolidated semantic content representation Content(vi ),
+(ii) an embedding vector ei for similarity-based retrieval,
+and (iii) an effective timestamp τ (vi ) indicating its semantic
+validity. This unified abstraction decouples semantic representation from storage topology, enabling consistent indexing, consolidation, and retrieval across modalities.
+
+3.1.2. The Edge: Threaded Causal Skeleton
+Edges define how semantic states are connected and evolve
+over time. A directed edge p → vi indicates that node vi
+is semantically conditioned on prior node p. Together with
+the temporal constraint τ (p) < τ (vi ), the graph enforces
+monotonic evolution and prevents circular dependencies.
+Minimal causal skeleton. To preserve the threaded semantics and avoid redundant dependencies, we maintain the
+graph as a minimal causal skeleton, where each edge represents an irreducible dependency rather than a shortcut implied by transitive paths.
+Pruning criterion. An edge (p → vi ) is retained if and
+only if there exists no alternative directed path from p to vi
+in the remaining graph:
+(p → vi ) ∈ E ⇐⇒ p ̸⇝ vi in G \ {(p → vi )},
+where a ⇝ b denotes reachability via a directed path. Edges
+violating this criterion are pruned as transitive or redundant
+dependencies. This effectively maintains a transitive reduction of the dependency DAG. For example, if pp → p and
+p → vi exist, then pp can reach vi through p, and the shortcut edge pp → vi is removed.
+Memory threads. We define a memory thread as any directed path v0 ⇝ v in the DAG, where nodes are strictly
+
+ordered by increasing effective timestamps. Such root-tonode paths provide a traceable evolution chain, capturing
+how topics, states, or beliefs accumulate and change over
+time as the path progresses chronologically.
+By preserving only minimal dependencies under the
+pruning criterion, the graph avoids transitive shortcuts and
+keeps these root-to-node threads compact and interpretable.
+As a result, threads serve as an explicit causal backbone that
+supports traceable reasoning, dependency-aware retrieval
+(e.g., closure construction), and stable long-term knowledge
+accumulation.
+
+3.2. Memory Graph Updating
+Long-term memory continuously evolves as new interactions arrive and existing memories are refined. Our system
+explicitly separates representation updates (how semantic
+node contents are consolidated) from index updates (how
+nodes are organized and connected in the graph), and supports both offline batch processing and online incremental
+maintenance.
+3.2.1. Graph Update Operators
+We define two basic operators for maintaining the graph index: Insert and ReInsert. Both operators enforce the
+temporal constraint and the pruning criterion (Sec. 3.1.2)
+and share the same edge construction logic: candidate retrieval, pruning, and edge materialization.
+Insert Given a new node vi and the current graph G =
+(V, E), Insert(vi , G) constructs the incoming edges of
+vi through a three-stage procedure: candidate retrieval, redundancy pruning, and edge materialization.
+• Candidate retrieval. We restrict the parent search space
+of vi to historical nodes that satisfy the temporal constraint. The candidate parent set is defined as the Top-K
+most similar historical nodes:
+
+
+H(vi ) = Top-K sim vi , {vj ∈ V | τ (vj ) < τ (vi )} .
+This step bounds parent selection to a local semantic
+neighborhood and avoids quadratic all-pairs comparison.
+• Redundancy pruning. To preserve the threaded causal
+semantics and avoid transitive or dominated dependencies, we retain only irreducible parents. A candidate
+parent p ∈ H(vi ) is kept if and only if there exists no
+alternative path from p to vi through another candidate:
+n
+o
+P(vi ) = p ∈ H(vi ) ∄q ∈ H(vi )\{p} such that p ⇝ q ,
+where p ⇝ q denotes reachability in the subgraph induced by historical nodes {vj ∈ V | τ (vj ) < τ (vi )}.
+• Edge materialization. The remaining parents form the
+incoming edges of vi :
+Ein (vi ) = {(p → vi ) | p ∈ P(vi )}.
+
+These edges are added to the graph index.
+The Insert operator does not modify any existing
+node or edge except adding Ein (vi ), and therefore preserves
+the global DAG property.
+ReInsert. Given an existing node v, ReInsert(v, G)
+re-attaches v to the graph by recomputing its incoming
+edges using the same procedure as Insert. The operator
+removes all previous incoming edges of v and materializes
+a new parent set based on its current representation and the
+pruning criterion. This local repair is triggered when the semantic content or embedding of v changes, or when its previous dependencies become stale due to upstream updates
+or deletions. ReInsert updates only the neighborhood
+of v and preserves the global DAG property and threaded
+semantics.
+3.2.2. Offline Batch Updates
+Offline updates are triggered during cold start, large-scale
+cleanup, or periodic maintenance. They jointly optimize
+node representations and graph structure at scale.
+Node construction. Historical interactions are processed
+in batches to construct stabilized and compact semantic
+node representations. Rather than writing fragmented memories incrementally, the system jointly consolidates multiple
+dialogue and multimodal segments to reduce redundancy,
+resolve inconsistencies, and produce high-quality long-term
+representations.
+Let M denote the current memory store, i.e., the set
+of existing graph nodes equipped with their embedding index. Assuming that the system receives a batch of dialogue turns {Dt }N
+t=1 , the representation layer applies a
+four-stage writing pipeline consisting of summarization, retrieval alignment, global clustering, and LLM-based consolidation (Fig. 2):
+• Summarization (parallel across turns). Each dialogue
+turn Dt is independently summarized into one or more
+textual summaries, denoted as St . The collection of all
+summaries from the batch is
+S=
+
+N
+[
+
+St .
+
+t=1
+
+• Retrieval alignment (parallel across summaries). For
+each summary si ∈ S, the system performs vector retrieval against the memory store M to identify the top-k
+most related existing nodes:
+Ri = Top-k(sim(si , M)) .
+This step aligns new content with historical memory to
+expose semantic redundancy and potential updates.
+
+<latexit sha1_base64="kqLOxsYhX4GLbUbSoqMdQK1v6PU=">AAACCnicbZC7SgNBFIZn4y3GW9TSZjQIsQm74q0M2lhJBHOBJITZyUkyZHZ2mTkrhiW1ja9iY6GIrU9g59s4uRSa+MPAz3/O4cz5/EgKg6777aQWFpeWV9KrmbX1jc2t7PZOxYSx5lDmoQx1zWcGpFBQRoESapEGFvgSqn7/alSv3oM2IlR3OIigGbCuEh3BGdqold2n+QbCAyYR00xKkJRxHRpDbyjGWpnhUSubcwvuWHTeeFOTI1OVWtmvRjvkcQAKuWTG1D03wmbCNAouYZhpxAYixvusC3VrFQvANJPxKUN6aJM27YTaPoV0nP6eSFhgzCDwbWfAsGdma6Pwv1o9xs5FMxEqihEUnyzqxJJiSEdcaFto4CgH1lgCwv6V8p5lwtHSy1gI3uzJ86ZyXPDOCqe3J7ni5RRHmuyRA5InHjknRXJNSqRMOHkkz+SVvDlPzovz7nxMWlPOdGaX/JHz+QO11ZpL</latexit>
+
+(parallel across N turns)
+
+(parallel across |C| clusters)
+<latexit sha1_base64="gvoT4j8iXWxla/LSu5oHwYSuJ6M=">AAACGnicbVDJTgJBEO1xRdxQj146ggleyIxxOxK5eMRElgQI6WkK6NCzpLvGSAa+w4u/4sWDxngzXvwbe4CDgi/p5OW9quqq54ZSaLTtb2tpeWV1bT21kd7c2t7ZzeztV3UQKQ4VHshA1V2mQQofKihQQj1UwDxXQs0dlBK/dg9Ki8C/w2EILY/1fNEVnKGR2hkn30R4wDhkikkJkjKuAq1pbtT0GPY5k3FpPMpRLiONZs74pJ3J2gV7ArpInBnJkhnK7cxnsxPwyAMfuWRaNxw7xFbMFAouYZxuRhpCxgesBw1DfeaBbsWT08b02Cgd2g2UeT7Sifq7I2ae1kPPNZXJvnreS8T/vEaE3atWLPwwQvD59KNuJCkGNMmJdoQCjnJoiIlEmF0p75uQeJJC2oTgzJ+8SKqnBeeicH57li1ez+JIkUNyRPLEIZekSG5ImVQIJ4/kmbySN+vJerHerY9p6ZI16zkgf2B9/QDgTaFn</latexit>
+
+(parallel across |S| summaries)
+<latexit sha1_base64="XygqJhVn9s5DCRGfYOecWz6Zqyg=">AAACG3icbZDJSgNBEIZ7XGPcoh69NEZBL2EmuB2DXjxGNAskIfR0KtrYPTN014hhMu/hxVfx4kERT4IH38ZOMge3Hxp+/qqiqz4/ksKg6346U9Mzs3PzuYX84tLyymphbb1uwlhzqPFQhrrpMwNSBFBDgRKakQamfAkN/+Z0VG/cgjYiDC5xEEFHsatA9AVnaKNuobzbRrjDJGKaSQmSMq5DY+j2sK0YXnMmk4t0uE1NrBTTAky61y0U3ZI7Fv1rvMwUSaZqt/De7oU8VhAgl8yYludG2EmYRsElpPl2bCBi/IZdQcvagCkwnWR8W0p3bNKj/VDbFyAdp98nEqaMGSjfdo4WNr9ro/C/WivG/nEnEUEUIwR88lE/lhRDOgJFe0IDRzmwxjIRdlfKry0ljhZn3kLwfp/819TLJe+wdHC+X6ycZDhyZJNskV3ikSNSIWekSmqEk3vySJ7Ji/PgPDmvztukdcrJZjbIDzkfX8UDoeI=</latexit>
+
+Summarization
+<latexit sha1_base64="T1O/wAokQtfYhSzJdJ5C6OY3Pnk=">AAAB/3icbVDLSsNAFJ34rPUVFdy4CRbBVUnE17LoxmVF+4A2lMl00g6dmYSZG7HGLvwVNy4UcetvuPNvnKZZaOuBC4dz7uXee4KYMw2u+23NzS8sLi0XVoqra+sbm/bWdl1HiSK0RiIeqWaANeVM0how4LQZK4pFwGkjGFyO/cYdVZpF8haGMfUF7kkWMoLBSB17tw30HoIwvUmEwIo9ZPqoY5fcspvBmSVeTkooR7Vjf7W7EUkElUA41rrluTH4KVbACKejYjvRNMZkgHu0ZajEgmo/ze4fOQdG6TphpExJcDL190SKhdZDEZhOgaGvp72x+J/XSiA891Mm4wSoJJNFYcIdiJxxGE6XKUqADw3BRDFzq0P6WGECJrKiCcGbfnmW1I/K3mn55Pq4VLnI4yigPbSPDpGHzlAFXaEqqiGCHtEzekVv1pP1Yr1bH5PWOSuf2UF/YH3+ADmEluU=</latexit>
+
+Decision
+
+Clustering
+
+<latexit sha1_base64="yMBU1pRHsCF+gWcvTPaYPcKHoRc=">AAAB+nicbVDLSsNAFJ3UV62vVJdugkVwVRLxtSzqwmUF+4A2lMn0ph06eTBzo5bYT3HjQhG3fok7/8ZJm4W2Hhg4nHMu987xYsEV2va3UVhaXlldK66XNja3tnfM8m5TRYlk0GCRiGTbowoED6GBHAW0Ywk08AS0vNFV5rfuQSoehXc4jsEN6CDkPmcUtdQzy12ER/T89BoYz1KTnlmxq/YU1iJxclIhOeo986vbj1gSQIhMUKU6jh2jm1KJnAmYlLqJgpiyER1AR9OQBqDcdHr6xDrUSt/yI6lfiNZU/T2R0kCpceDpZEBxqOa9TPzP6yToX7gpD+MEIWSzRX4iLIysrAerzyUwFGNNKJNc32qxIZWUoW6rpEtw5r+8SJrHVeesenp7Uqld5nUUyT45IEfEIeekRm5InTQIIw/kmbySN+PJeDHejY9ZtGDkM3vkD4zPH+XvlG4=</latexit>
+
+<latexit sha1_base64="JykfvgGkhxw1GILt68wBMBILyGk=">AAAB/HicbVBNS8NAEN34WetXtEcvwSJ4Kon4dSz24rGC/YC2lM120i7dbMLuRAyh/hUvHhTx6g/x5r9x2+agrQ8GHu/NMDPPjwXX6Lrf1srq2vrGZmGruL2zu7dvHxw2dZQoBg0WiUi1fapBcAkN5CigHSugoS+g5Y9rU7/1AErzSN5jGkMvpEPJA84oGqlvl7oIj+gHWU0kGkFxOZz07bJbcWdwlomXkzLJUe/bX91BxJIQJDJBte54boy9jCrkTMCk2E00xJSN6RA6hkoagu5ls+MnzolRBk4QKVMSnZn6eyKjodZp6JvOkOJIL3pT8T+vk2Bw3cu4jBMEyeaLgkQ4GDnTJJwBV8BQpIZQpri51WEjqigzMeiiCcFbfHmZNM8q3mXl4u68XL3J4yiQI3JMTolHrkiV3JI6aRBGUvJMXsmb9WS9WO/Wx7x1xcpnSuQPrM8frn6VdA==</latexit>
+
+Union
+<latexit sha1_base64="bhqAIvBheXvOZdObHLrjbTl+XqY=">AAAB9XicbVBNT8JAEN3iF+IX6tFLIzHxRFrj15HoxSMmFkigku0yhQ3bbbM7VUnD//DiQWO8+l+8+W9coAcFXzLJ2/dmsjMvSATX6DjfVmFpeWV1rbhe2tjc2t4p7+41dJwqBh6LRaxaAdUguAQPOQpoJQpoFAhoBsPrid98AKV5LO9wlIAf0b7kIWcUjXTfQXjCIMw8aV7jbrniVJ0p7EXi5qRCctS75a9OL2ZpBBKZoFq3XSdBP6MKORMwLnVSDQllQ9qHtqGSRqD9bLr12D4ySs8OY2VKoj1Vf09kNNJ6FAWmM6I40PPeRPzPa6cYXvoZl0mKINnsozAVNsb2JAK7xxUwFCNDKFPc7GqzAVWUoQmqZEJw509eJI2TqntePbs9rdSu8jiK5IAckmPikgtSIzekTjzCiCLP5JW8WY/Wi/VufcxaC1Y+s0/+wPr8ATDxkvo=</latexit>
+
+si
+
+Dt
+
+<latexit sha1_base64="yBJCeGzzTqlDXrtGDSEGxS5MNj0=">AAAB6nicbVDLSgNBEOyNrxhfUY9eBoPgKeyKr2PQi8eI5gHJEmYns8mQ2dllplcISz7BiwdFvPpF3vwbJ8keNLGgoajqprsrSKQw6LrfTmFldW19o7hZ2tre2d0r7x80TZxqxhsslrFuB9RwKRRvoEDJ24nmNAokbwWj26nfeuLaiFg94jjhfkQHSoSCUbTSg+mJXrniVt0ZyDLxclKBHPVe+avbj1kacYVMUmM6npugn1GNgkk+KXVTwxPKRnTAO5YqGnHjZ7NTJ+TEKn0SxtqWQjJTf09kNDJmHAW2M6I4NIveVPzP66QYXvuZUEmKXLH5ojCVBGMy/Zv0heYM5dgSyrSwtxI2pJoytOmUbAje4svLpHlW9S6rF/fnldpNHkcRjuAYTsGDK6jBHdShAQwG8Ayv8OZI58V5dz7mrQUnnzmEP3A+fwBcMo3d</latexit>
+
+<latexit sha1_base64="OgY7s5jQRA6ACCriSxDt33KVWBo=">AAAB6nicbVDLSgNBEOyNrxhfUY9eBoPgKeyKr2NQDx4jmgckS5idzCZDZmeXmV4hLPkELx4U8eoXefNvnCR70GhBQ1HVTXdXkEhh0HW/nMLS8srqWnG9tLG5tb1T3t1rmjjVjDdYLGPdDqjhUijeQIGStxPNaRRI3gpG11O/9ci1EbF6wHHC/YgOlAgFo2il+5se9soVt+rOQP4SLycVyFHvlT+7/ZilEVfIJDWm47kJ+hnVKJjkk1I3NTyhbEQHvGOpohE3fjY7dUKOrNInYaxtKSQz9edERiNjxlFgOyOKQ7PoTcX/vE6K4aWfCZWkyBWbLwpTSTAm079JX2jOUI4toUwLeythQ6opQ5tOyYbgLb78lzRPqt559ezutFK7yuMowgEcwjF4cAE1uIU6NIDBAJ7gBV4d6Tw7b877vLXg5DP78AvOxzclRI25</latexit>
+
+Ci
+<latexit sha1_base64="AA/dNYLBPjZrV2L+Qm6vuTBDbao=">AAAB6nicbVDLSgNBEOyNrxhfUY9eBoPgKeyKr2MwF48RzQOSJcxOZpMhs7PLTK8QlnyCFw+KePWLvPk3TpI9aLSgoajqprsrSKQw6LpfTmFldW19o7hZ2tre2d0r7x+0TJxqxpsslrHuBNRwKRRvokDJO4nmNAokbwfj+sxvP3JtRKwecJJwP6JDJULBKFrpvt4X/XLFrbpzkL/Ey0kFcjT65c/eIGZpxBUySY3pem6CfkY1Cib5tNRLDU8oG9Mh71qqaMSNn81PnZITqwxIGGtbCslc/TmR0ciYSRTYzojiyCx7M/E/r5tieO1nQiUpcsUWi8JUEozJ7G8yEJozlBNLKNPC3krYiGrK0KZTsiF4yy//Ja2zqndZvbg7r9Ru8jiKcATHcAoeXEENbqEBTWAwhCd4gVdHOs/Om/O+aC04+cwh/ILz8Q0TEo2t</latexit>
+
+Retrieval
+
+<latexit sha1_base64="ek2U6jlLkB06YHsurIq3TBRUs98=">AAAB8nicbVDLSgMxFM3UV62vqks3wSK4KjPia1l047KCYwvToWTSTBuaSYbkjlCGfoYbF4q49Wvc+Tdm2llo64HA4Zx7ybknSgU34LrfTmVldW19o7pZ29re2d2r7x88GpVpynyqhNLdiBgmuGQ+cBCsm2pGkkiwTjS+LfzOE9OGK/kAk5SFCRlKHnNKwEpBLyEwokTk/rRfb7hNdwa8TLySNFCJdr/+1RsomiVMAhXEmMBzUwhzooFTwaa1XmZYSuiYDFlgqSQJM2E+izzFJ1YZ4Fhp+yTgmfp7IyeJMZMkspNFRLPoFeJ/XpBBfB3mXKYZMEnnH8WZwKBwcT8ecM0oiIklhGpus2I6IppQsC3VbAne4snL5PGs6V02L+7PG62bso4qOkLH6BR56Aq10B1qIx9RpNAzekVvDjgvzrvzMR+tOOXOIfoD5/MHkfKRdQ==</latexit>
+
+<latexit sha1_base64="OBHE1KLzm/a7KNHqURcivpIcamE=">AAAB+3icbVDJSgNBEO2JW4zbGI9eBoPgKcyI2zHoxWMUs0AyhJ5OTdKkZ6G7JiQM8ytePCji1R/x5t/YSeagiQ8KHu9VUVXPiwVXaNvfRmFtfWNzq7hd2tnd2z8wD8tNFSWSQYNFIpJtjyoQPIQGchTQjiXQwBPQ8kZ3M781Bql4FD7hNAY3oIOQ+5xR1FLPLHcRJuj56SOg5DCmIuuZFbtqz2GtEicnFZKj3jO/uv2IJQGEyARVquPYMboplciZgKzUTRTElI3oADqahjQA5abz2zPrVCt9y4+krhCtufp7IqWBUtPA050BxaFa9mbif14nQf/GTXkYJwghWyzyE2FhZM2CsPpcAkMx1YQyyfWtFhtSSRnquEo6BGf55VXSPK86V9XLh4tK7TaPo0iOyQk5Iw65JjVyT+qkQRiZkGfySt6MzHgx3o2PRWvByGeOyB8Ynz/VA5T4</latexit>
+
+U
+
+A
+<latexit sha1_base64="04pYnXKrIorpQ1lrZmmKZFLrzNw=">AAAB8nicbVDLSgMxFM3UV62vqks3wSK4KjPia1l147KCfcB0KJk004ZmkiG5I5Shn+HGhSJu/Rp3/o2ZdhbaeiBwOOdecu4JE8ENuO63U1pZXVvfKG9WtrZ3dveq+wdto1JNWYsqoXQ3JIYJLlkLOAjWTTQjcShYJxzf5X7niWnDlXyEScKCmAwljzglYCW/FxMYUSKym2m/WnPr7gx4mXgFqaECzX71qzdQNI2ZBCqIMb7nJhBkRAOngk0rvdSwhNAxGTLfUkliZoJsFnmKT6wywJHS9knAM/X3RkZiYyZxaCfziGbRy8X/PD+F6DrIuExSYJLOP4pSgUHh/H484JpREBNLCNXcZsV0RDShYFuq2BK8xZOXSfus7l3WLx7Oa43boo4yOkLH6BR56Ao10D1qohaiSKFn9IreHHBenHfnYz5acoqdQ/QHzucPc46RYQ==</latexit>
+
+A → {add, delete, update, no-op}
+<latexit sha1_base64="Zttz2dFWmDYyk1fndnEyKGsGlaE=">AAACH3icbVBLSzMxFM34tr6qLt0Ei+BCy8zH52PpY+NSwarQKeVO5tYGM0lIMkIZ5p+48a+4caGIuPPfmKld+DoQcjjnXpJzEi24dWH4HoyNT0xOTc/M1ubmFxaX6ssrF1blhmGLKaHMVQIWBZfYctwJvNIGIUsEXiY3x5V/eYvGciXP3UBjJ4NryXucgfNSt74bZ+D6DERxWNKYSxoXNMZM9wtI0y2aokCHWzTXKVS3VNtKl3HZrTfCZjgE/U2iEWmQEU679bc4VSzPUDomwNp2FGrXKcA4zgSWtTi3qIHdwDW2PZWQoe0Uw3wl3fBKSnvK+CMdHapfNwrIrB1kiZ+s0tifXiX+5bVz19vvFFzq3KFknw/1ckGdolVZNOUGmRMDT4AZ7v9KWR8MMOcrrfkSop+Rf5OLf81ot7lz9r9xcDSqY4askXWySSKyRw7ICTklLcLIHXkgT+Q5uA8eg5fg9XN0LBjtrJJvCN4/ACNxom0=</latexit>
+
+Ri
+<latexit sha1_base64="vIScES8fk5QF2AlRm0oMELxCZ0E=">AAAB6nicbVDJSgNBEK2JW4xb1KOXxiB4CjPidgx68RiXLJAMoadTkzTp6Rm6e4Qw5BO8eFDEq1/kzb+xk8xBow8KHu9VUVUvSATXxnW/nMLS8srqWnG9tLG5tb1T3t1r6jhVDBssFrFqB1Sj4BIbhhuB7UQhjQKBrWB0PfVbj6g0j+WDGSfoR3QgecgZNVa6v+vxXrniVt0ZyF/i5aQCOeq98me3H7M0QmmYoFp3PDcxfkaV4UzgpNRNNSaUjegAO5ZKGqH2s9mpE3JklT4JY2VLGjJTf05kNNJ6HAW2M6JmqBe9qfif10lNeOlnXCapQcnmi8JUEBOT6d+kzxUyI8aWUKa4vZWwIVWUGZtOyYbgLb78lzRPqt559ez2tFK7yuMowgEcwjF4cAE1uIE6NIDBAJ7gBV4d4Tw7b877vLXg5DP78AvOxzcp7I28</latexit>
+
+Figure 2. Overview of the offline node construction pipeline. A batch of dialogue turns {Dt }N
+t=1 is first summarized in parallel into textual
+summaries si . Each summary retrieves related historical memories to form retrieval sets Ri . All summaries and retrieved candidates are
+merged into a unified pool U and globally clustered into semantic groups Ci . For each cluster, an LLM performs consolidation and assigns
+an action A ∈ {add, delete, update, no-op} to produce stabilized memory updates. Parallelizable stages across turns, summaries, and
+clusters are indicated in the diagram.
+
+• Global semantic clustering (non-parallel). All new
+summaries and retrieved candidates are merged into a
+unified candidate pool
+!
+[
+U=
+Ri ∪ S,
+i
+
+which is globally clustered into semantic groups
+C = {C1 , C2 , . . . , Cm },
+
+quadratic all-pairs comparison while preserving temporal
+validity and the pruning criterion, enabling scalable offline
+rebuilding.
+3.2.3. Online Incremental Updates
+Online updates handle real-time interaction with low latency by incrementally updating both (i) the node representation (content/embedding) and (ii) the graph index (incoming edges).
+
+Cj ⊆ U.
+
+Each cluster aggregates semantically related content
+across both new and historical memory.
+• LLM-based consolidation (parallel across clusters).
+For each cluster Cj , entries are temporally ordered and
+passed to an LLM, which determines an action
+A ∈ {add, delete, update, no-op}
+for each item. This step resolves redundancy and inconsistency and produces refined semantic representations
+that are re-embedded and emitted as stabilized graph
+nodes.
+Edge construction. Offline edge construction builds the
+graph index by applying the Insert operator (Sec. 3.2.1)
+to all nodes in V . Nodes are processed in non-decreasing
+timestamp order. For each node vi , Insert(vi , G) determines its incoming edges based only on historical nodes and
+does not modify any existing edges. Therefore, all insertions can be executed independently and in parallel using a
+read-only vector index.
+All locally constructed edges are aggregated to form the
+final graph G = (V, E). This parallel construction avoids
+
+Node incremental update. In the online setting, node
+construction follows the same abstraction pipeline as offline
+consolidation, but operates on a single interaction instance
+(i.e., batch size = 1) and omits global clustering for low latency. Given a new dialogue turn or multimodal observation
+Dt , the representation layer performs:
+• Summarization.
+Dt is summarized into one or
+more candidate semantic nodes, capturing distinct facts,
+events, or state changes expressed in the turn.
+• Retrieval alignment. Each candidate node is matched
+against the current memory store to identify highly related existing nodes, exposing potential redundancy or
+update targets.
+• LLM-based decision. Based on the candidate content
+and retrieved context, an LLM decides whether to add a
+new node, update an existing node, or perform no-op.
+This lightweight pipeline enables real-time semantic
+state extraction while maintaining consistency with the offline consolidation logic.
+Edge incremental update. Online edge maintenance updates the graph index by invoking the Insert and
+
+ReInsert operators (Sec. 3.2.1), while preserving the
+temporal constraint and the pruning criterion (Sec. 3.1.2).
+• Add. A newly created node v is attached to the graph by
+invoking Insert(v, G). By the temporal constraint, v
+can only depend on historical nodes; therefore, no existing node needs to be modified.
+• Update. When an existing node v is updated, its semantic representation or embedding may change. We
+invoke ReInsert(v, G) to recompute and replace its
+incoming edges. To preserve threaded consistency in the
+downstream structure, all direct children c ∈ Ch(v) are
+additionally refreshed by calling ReInsert(c, G). Although these children remain temporally valid, their optimal attachment points under the pruning criterion may
+change after v is revised.
+• Delete. When a node v is deleted, it is marked as a
+tombstone and its children Ch(v) are collected as orphans. Each orphaned child c is repaired by invoking ReInsert(c, G), which re-attaches c to alternative
+valid historical parents. This prevents memory threads
+from breaking due to the removal of an intermediate dependency.
+Remark. All online updates perform bounded local modifications suitable for low-latency interaction, while periodic offline rebuilding re-optimizes the topology. This process amortizes local approximation errors and preserves
+long-term structural consistency of the memory graph.
+
+3.3. Memory Reading
+Storing memory well is not enough; it must also be retrieved
+in a way that restores causal context. We therefore replace
+“Top-K fragment stitching” with closure-based retrieval,
+which constructs a minimal closed subgraph that contains
+both the most relevant evidence and its necessary prerequisites.
+3.3.1. Retrieval Paradigm: Minimal Closed Subgraph
+Given a query q, the system retrieves a closed subgraph that
+contains the most relevant memory threads together with all
+their required historical dependencies, while avoiding irrelevant sibling branches whenever possible.
+Seed identification. We first retrieve a small set of seed
+nodes by Top-K embedding similarity between q and graph
+nodes. If no confident match exists, the virtual root node is
+used as a fallback seed to preserve global connectivity.
+Closure expansion. Starting from seed nodes, the system
+recursively traverses dependency edges backward to collect
+all reachable ancestor nodes until the virtual root node is
+reached. This produces a closed subgraph in which every
+node’s prerequisites are included. In practice, if the closure
+
+grows excessively large, the traversal can be bounded by
+a maximum depth or guided by lightweight heuristics (e.g.,
+relevance filtering or budgeted expansion) to control latency
+and context size.
+Context linearization. All nodes in the closure are sorted
+by timestamp and serialized into a linear context sequence,
+optionally augmented with lightweight structural markers,
+and injected into the LLM prompt for downstream reasoning.
+By reconstructing complete causal threads rather than
+sampling isolated memory fragments, closure-based retrieval preserves prerequisite consistency, reduces thread
+confusion, and improves long-horizon reasoning stability.
+3.3.2. Reasoning Paradigm: ReAct-Style Multimodal
+Agent
+For complex multimodal queries, memory reading is performed by a ReAct-style agent that iteratively executes
+think–act–observe cycles over textual memory and raw
+video content (Alg. 1).
+Reasoning. Based on the query and the accumulated interaction history, the agent reasons about what information is missing, which hypotheses require verification, and
+whether additional evidence is needed from memory or
+video.
+Action. The agent selects among three tools to refine its
+knowledge:
+• video.retrieval: retrieve relevant clip timestamps
+by vector similarity over textual memory;
+• video.rag: aggregate top-k textual memory entries
+into the LLM prompt for grounded summarization;
+• video.qa: perform vision-language question answering over a specified video clip to extract fine-grained visual details.
+Observation. The outputs returned by the selected tools
+(retrieved memory entries, localized clips, or visual answers) are appended to the agent history and become the
+observations for the next reasoning step.
+Through iterative think–act–observe cycles, the agent
+progressively refines its understanding of the multimodal
+context and produces a grounded response.
+
+4. Experiments
+Dataset We conduct experiments on two ultra-long dialogue datasets to assess agent memory capabilities. ZH4O [1] serves as a Chinese role-playing benchmark comprising 28 authentic human-LLM sessions (avg. 600 turns),
+annotated with 1,068 multiple-choice probing questions
+
+Algorithm 1: ReAct-Style Multimodal Memory
+Reading
+Input: Initial query q, language model LLM(·),
+multimodal memory M = Me ∪ Mobj
+Output: Response
+1 Initialize history H ← [q];
+2 while not exceeding max iterations do
+3
+(action, args) ← LLM(H);
+4
+if action = video.retrieval then
+5
+q ← args;
+6
+results ← video.retrieval(q, M);
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+
+else if action = video.rag then
+q ← args;
+results ← video.rag(q, M);
+else if action = video.qa then
+(q, tstart , tend ) ← args;
+results ← video.qa(q, tstart , tend );
+else if action = finish then
+break;
+H ← H ∥ [(action, args, results)];
+return LLM(H);
+
+to test memory recall. Complementarily, we utilize LoCoMo [16] as an English dataset, which consists of 10 longcontext sessions paired with 1,540 question-answer pairs
+covering single-hop, multi-hop, open-domain, and temporal reasoning. Notably, we exclude the LoCoMo adversarial
+subset due to the absence of ground-truth answers.
+Baselines We compare our framework against five baselines, categorized into general paradigms and specialized
+memory systems. First, we consider two foundational approaches: Long context LLM utilizes the entire conversation history to establish a full-context reference, while
+RAG retrieves the top-k semantically relevant segments to
+augment generation. Second, we include three advanced
+memory architectures: Memobase [24] maintains structured user profiles and event memories; A-Mem [35] utilizes an agentic framework to autonomously link memory
+notes; and Mem0 [2], a modular memory system designed
+for scalable deployment with explicit in-context memory
+operations.
+Implementation To ensure a fair and consistent evaluation, we re-implemented all baselines using Qwen3-8B [37]
+(configured in “no-think” mode) as the backbone LLM,
+paired with Qwen3-8B-embedding [37] for vector representations. Crucially, a unified prompt template is applied
+for response generation across all settings to strictly control
+for variance.
+
+Method
+
+Overall (%)
+
+RAG
+Mem0
+MOOM
+A-Mem
+Memobase
+Long context LLM
+
+62.45
+70.20
+72.60
+73.78
+76.78
+84.92
+
+T ELE M EM
+
+86.33
+
+Table 1. Performance comparison on the ZH-4O benchmark. The
+metric represents QA Accuracy (%) across 1,068 probing questions. The best performance is highlighted in bold.
+
+Evaluation Our evaluation strategies are tailored to each
+dataset: for ZH-4O [1], we quantify memory fidelity via QA
+Accuracy, where the model selects the single correct option
+for each multiple-choice query against ground-truth labels.
+For LoCoMo [16], following prior work [2], we employ an
+LLM-as-a-Judge (J) approach using GPT-4o [5], which assesses the factual accuracy, relevance, and completeness of
+the generated responses.
+
+4.1. Results on ZH-4O
+Main Results Table 1 presents the performance of different memory paradigms on the ZH-4O benchmark, revealing
+clear distinctions in their ability to support long-horizon,
+multi-turn question answering. We make the following observations.
+• Retrieval-only methods are insufficient. RAG achieves
+the lowest accuracy (62.45%), indicating that flat semantic retrieval without temporal ordering or relational structure fails to support multi-turn, memory-intensive reasoning required by ZH-4O.
+• Explicit memory mechanisms consistently improve
+performance. All memory-augmented approaches outperform RAG, demonstrating the necessity of maintaining persistent and updatable memory states for longhorizon dialogue understanding. Among them, Memobase performs best (76.78%), likely due to its structured
+user profiling that aligns well with the role-playing characteristics of the benchmark.
+• Long-context modeling alone has inherent limitations.
+The Long Context LLM baseline achieves 84.92% accuracy by leveraging the full dialogue history, but its reliance on raw context makes it susceptible to noise, redundancy, and attention dilution as interactions grow longer.
+• Coordinated read–write memory yields the best results. Our proposed T ELE M EM attains the highest accuracy of 86.33%, outperforming both long-context and
+prior memory-based architectures. This demonstrates that
+selectively compressing salient information and enabling
+
+context-aware memory access is more effective than unstructured context accumulation or loosely coupled memory modules.
+Read-Write Scaling Law Table 2 reveals a clear memory
+read–write scaling law by varying the model sizes of the
+memory write LLM and the memory read LLM. Overall
+performance improves monotonically as either component
+scales up, indicating that both memory writing and memory reading contribute substantially to downstream QA accuracy. However, the gains are not symmetric across the
+two dimensions. Increasing the size of the write LLM leads
+to consistent improvements across almost all read settings,
+suggesting that stronger writers produce more informative,
+compact, and robust memory representations that benefit
+readers of different capacities. Scaling the read LLM yields
+even more pronounced gains, particularly when paired with
+medium-to-large write models. This indicates that memory retrieval and reasoning capacity plays a critical role in
+exploiting stored information, especially when the memory content is sufficiently well-structured. Notably, performance saturates when the reader significantly outscales the
+writer, implying that retrieval capacity alone cannot compensate for low-quality memory writing. The best results
+are achieved when both the write and read LLMs are scaled
+jointly, highlighting the complementary and interdependent
+nature of memory writing and reading. These findings suggest that effective long-term memory systems should be
+designed with coordinated read–write capacity rather than
+over-optimizing either component in isolation.
+
+4.2. Results on LoCoMo
+Main Results Table 3 compares different methods on
+the LoCoMo benchmark across four reasoning categories.
+Overall, the Long Context LLM achieves the strongest
+performance (70.71%), demonstrating the effectiveness of
+processing full interaction histories for complex memorycentric tasks. This advantage is particularly pronounced on
+temporal questions, where access to complete chronological context is crucial. In contrast, retrieval-based baselines
+perform poorly across all categories, highlighting the limitations of static semantic retrieval for long-term conversational reasoning. Memory systems exhibit diverse strengths
+across reasoning types. Mem0 performs well on singlehop questions (54.96%) and temporal reasoning (60.28%),
+suggesting that its modular memory abstraction is effective for fact recall and time-sensitive information. Memobase excels on multi-hop reasoning (66.04%), likely benefiting from its structured memory representations that better support compositional inference. A-Mem shows more
+balanced but moderate performance, indicating that agentic
+memory control alone is insufficient without strong memory
+structuring. T ELE M EM achieves competitive performance
+
+on single-hop (64.53%) and temporal reasoning (78.47%),
+approaching the Long Context LLM in these categories,
+which suggests that its memory abstraction effectively captures salient factual and temporal information. However, its
+weaker performance on multi-hop questions indicates remaining challenges in supporting complex relational reasoning over stored memories. Overall, these results highlight that different memory mechanisms favor different reasoning patterns, and no single approach uniformly dominates all categories, underscoring the importance of taskaware memory design for long-horizon QA.
+
+5. Related Work
+Text LTM Recent research on equipping Large Language
+Models (LLMs) with text long-term memory has primarily evolved through system-level abstractions, cognitiveinspired mechanisms, and structured agentic frameworks.
+To transcend fixed context windows, operating system
+paradigms like MemGPT [20] and MemOS [8] leverage
+virtual memory abstractions and hierarchical scheduling to
+orchestrate data flow between active context and external
+storage. Complementing these architectural innovations,
+bio-inspired models such as MemoryBank [45], LightMem [3], and Nemori [19] integrate human cognitive theories—ranging from the Ebbinghaus forgetting curve to the
+Atkinson-Shiffrin model—to dynamically prioritize, segment, and decay information for efficient retrieval. On the
+structural front, Mem0 [2], A-Mem [35], and MIRIX [30]
+propose modular systems that enable self-evolving knowledge consolidation and multi-agent coordination.
+Graph LTM Recent literature on long-term memory
+for LLM agents highlights a transition from unstructured
+storage to graph-based architectures that enhance reasoning, consistency, and scalability. Foundational works like
+M em0g [2] and Zep [22] establish production-ready and
+temporal knowledge graph systems to manage agent memory efficiently. To address the complexity of long-term
+interactions, G-Memory [41], LiCoMemory [4], and SGMEM [32] proposes hierarchical graph structures that organize information at varying granularities, from sentencelevel details to high-level insights, thereby facilitating selfevolution and reducing fragmentation. Enhancing the reasoning capabilities over these structures, GraphCogent [26]
+and D-SMART [6] integrate working memory models and
+dynamic reasoning trees to support complex graph understanding and dialogue consistency, MemQ [34] focuses on
+optimizing knowledge graph reasoning. Furthermore, [33]
+introduces trainable graph memories that abstract agent trajectories into strategic meta-cognition. Collectively, these
+studies demonstrate that structured, hierarchical, and dynamic graph memories are essential for developing autonomous agents capable of coherent, long-term strategic
+
+Write ↓
+
+Read →
+
+0.6B
+
+1.7B
+
+4B
+
+8B
+
+14B
+
+32B
+
+Avg.
+
+0.6B
+1.7B
+4B
+8B
+14B
+32B
+
+52.72
+61.14
+63.48
+65.54
+67.04
+68.91
+
+64.23
+71.54
+74.25
+77.15
+78.28
+80.81
+
+73.69
+79.12
+81.09
+84.36
+84.55
+83.99
+
+75.47
+78.56
+83.33
+86.33
+86.33
+86.70
+
+74.06
+80.81
+84.55
+85.77
+87.55
+86.61
+
+72.19
+77.72
+83.33
+84.93
+85.49
+85.96
+
+68.73
+74.82
+78.34
+80.68
+81.54
+82.16
+
+Avg.
+
+63.14
+
+74.38
+
+81.13
+
+82.79
+
+83.17
+
+81.60
+
+–
+
+Table 2. Memory read–write scaling law. Performance (QA Accuracy, %) when using different model sizes for the memory write LLM
+(rows) and the memory read LLM (columns). Results show consistent performance gains as either component scales up, with larger
+read–write combinations yielding the strongest performance.
+
+Method
+
+Single-Hop
+
+Multi-Hop
+
+Open Domain
+
+Temporal
+
+Overall
+
+RAG
+Mem0
+A-Mem
+Memobase
+Long context LLM
+
+20.91
+54.96
+44.32
+50.70
+64.89
+
+32.39
+31.15
+35.82
+66.04
+47.66
+
+35.41
+40.62
+33.33
+37.50
+42.70
+
+48.03
+60.28
+56.59
+58.97
+84.66
+
+39.03
+52.01
+48.57
+57.59
+70.71
+
+T ELE M EM
+
+64.53
+
+20.56
+
+40.62
+
+78.47
+
+61.49
+
+Table 3. Performance comparison on the LoCoMo benchmark. All metrics represent accuracy (%) evaluated via LLM-as-a-Judge across
+1,540 question-answer pairs.
+
+planning and reasoning.
+
+base model.
+
+Parametric LTM Parametric memory aims to encode
+knowledge or contextual information directly into the
+weights or persistent hidden states of neural networks [12,
+14, 18], distinguishing itself from non-parametric approaches that rely on external vector databases. Wang et
+al. [27] propose a decoupled memory mechanism, employing a residual side network to cache long-term context while
+keeping the base LLM frozen. Similarly, MLPMemory [31]
+internalizes retrieval by training multilayer perceptrons to
+approximate k-nearest neighbor distributions as differentiable mappings. Pushing the internalization of retrieval
+further, Tay et al. [23] introduce the Differentiable Search
+Index, which eliminates external indices by training the
+model to map queries directly to document identifiers via
+its parameters. regarding personalized adaptation, Zhang et
+al. [42] combine LoRA with Bayesian optimization to inject dialogue history into model weights. Complementary
+to these injection methods, Meng et al. [17] explore the interpretability of parametric storage, proposing ROME to locate and directly edit factual associations within the Transformer’s MLP layers. Overall, parametric memory methods
+offer scalability and unified reasoning but face challenges
+regarding update costs and potential misalignment with the
+
+Multimodal LTM Multimodal memory [28, 43] has
+drawn increasing attention as modern agents must store
+and reason over long-horizon visual and textual information. Mem0 [2] introduces a multimodal image interface
+but ultimately reduces visual inputs to captions and continues to operate purely in the textual space. M3-Agent [15]
+extends memory into the multimodal domain by maintaining entity-level representations across audio–visual streams
+and enabling agentic retrieval over long video sequences.
+Inspired by hippocampal mechanisms, HippoMM [9] proposes cross-modal event encoding and temporal consolidation to support richer multimodal recall. MemVerse [10]
+further explores lifelong multimodal memory through a
+hierarchical retrieval framework with periodic distillation
+for compactness. In contrast, VisMem [39] emphasizes
+preserving visual latent representations rather than relying
+solely on textual abstractions. Overall, existing multimodal
+memory systems highlight the need for multi-granular representations and adaptive retrieval, while our approach advances this direction with a lightweight hierarchical design
+tailored for continuous multimodal streams.
+
+6. Conclusion
+We introduced T ELE M EM, a unified long-term and multimodal memory system that overcomes key limitations of
+existing RAG-based approaches. By extracting narrativegrounded information and employing a structured writing
+pipeline for batching, clustering, and consolidation, T ELE M EM maintains coherent user profiles while greatly improving storage and token efficiency. Its multimodal memory module with ReAct-style reasoning further enables
+accurate observe–think–act processing for complex video
+content. Experiments on the ZH-4O benchmark show that
+T ELE M EM substantially outperforms Mem0 in accuracy,
+efficiency, and speed, underscoring its effectiveness.
+Acknowledgments. The development of T ELE M EM has
+been greatly influenced by the contributions of open-source
+communities and prior research efforts. We express our sincere appreciation to the teams and projects whose work has
+inspired and supported this system, including Mem0, Memobase, MOOM, DVD, and Memento. Their innovations
+have provided valuable foundations upon which this work
+builds.
+
+References
+[1] Weishu Chen, Jinyi Tang, Zhouhui Hou, Shihao Han,
+Mingjie Zhan, Zhiyuan Huang, Delong Liu, Jiawei Guo,
+Zhicheng Zhao, and Fei Su. Moom: Maintenance, organization and optimization of memory in ultra-long role-playing
+dialogues. arXiv preprint arXiv:2509.11860, 2025. 6, 7
+[2] Prateek Chhikara, Dev Khant, Saket Aryan, Taranjeet Singh,
+and Deshraj Yadav. Mem0: Building production-ready ai
+agents with scalable long-term memory. arXiv preprint
+arXiv:2504.19413, 2025. 1, 7, 8, 9
+[3] Jizhan Fang, Xinle Deng, Haoming Xu, Ziyan Jiang, Yuqi
+Tang, Ziwen Xu, Shumin Deng, Yunzhi Yao, Mengru
+Wang, Shuofei Qiao, et al. Lightmem: Lightweight and
+efficient memory-augmented generation. arXiv preprint
+arXiv:2510.18866, 2025. 8
+[4] Zhengjun Huang, Zhoujin Tian, Qintian Guo, Fangyuan
+Zhang, Yingli Zhou, Di Jiang, and Xiaofang Zhou. Licomemory: Lightweight and cognitive agentic memory for efficient long-term reasoning.
+arXiv preprint
+arXiv:2511.01448, 2025. 8
+[5] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, et al. Gpt-4o system card.
+arXiv preprint arXiv:2410.21276, 2024. 1, 7
+[6] Xiang Lei, Qin Li, and Min Zhang. D-smart: Enhancing llm
+dialogue consistency via dynamic structured memory and
+reasoning tree. arXiv preprint arXiv:2510.13363, 2025. 8
+[7] Zhuowan Li, Cheng Li, Mingyang Zhang, Qiaozhu Mei, and
+Michael Bendersky. Retrieval augmented generation or longcontext llms? a comprehensive study and hybrid approach.
+
+In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing: Industry Track, pages
+881–893, 2024. 1
+[8] Zhiyu Li, Shichao Song, Chenyang Xi, Hanyu Wang, Chen
+Tang, Simin Niu, Ding Chen, Jiawei Yang, Chunyu Li,
+Qingchen Yu, et al. Memos: A memory os for ai system.
+arXiv preprint arXiv:2507.03724, 2025. 8
+[9] Yueqian Lin, Qinsi Wang, Hancheng Ye, Yuzhe Fu, Hai Li,
+Yiran Chen, et al. Hippomm: Hippocampal-inspired multimodal memory for long audiovisual event understanding.
+arXiv preprint arXiv:2504.10739, 2025. 9
+[10] Junming Liu, Yifei Sun, Weihua Cheng, Haodong Lei,
+Yirong Chen, Licheng Wen, Xuemeng Yang, Daocheng Fu,
+Pinlong Cai, Nianchen Deng, et al. Memverse: Multimodal memory for lifelong learning agents. arXiv preprint
+arXiv:2512.03627, 2025. 9
+[11] Jiaheng Liu, Dawei Zhu, Zhiqi Bai, Yancheng He, Huanxuan Liao, Haoran Que, Zekun Wang, Chenchen Zhang, Ge
+Zhang, Jiebin Zhang, et al. A comprehensive survey on
+long context language modeling. URL https://api. semanticscholar. org/CorpusID, 277271533, 2025. 1
+[12] Nuowei Liu, Jiahao Kuang, Yanting Liu, Tao Ji, Changzhi
+Sun, Man Lan, and Yuanbin Wu. Protein design with dynamic protein vocabulary. arXiv preprint arXiv:2505.18966,
+2025. 9
+[13] Nelson F Liu, Kevin Lin, John Hewitt, Ashwin Paranjape,
+Michele Bevilacqua, Fabio Petroni, and Percy Liang. Lost in
+the middle: How language models use long contexts. Transactions of the Association for Computational Linguistics, 12:
+157–173, 2024. 1
+[14] Yanting Liu, Tao Ji, Changzhi Sun, Yuanbin Wu, and Xiaoling Wang. Generation with dynamic vocabulary. In Proceedings of the 2024 Conference on Empirical Methods in
+Natural Language Processing, pages 18931–18948, 2024. 9
+[15] Lin Long, Yichen He, Wentao Ye, Yiyuan Pan, Yuan Lin,
+Hang Li, Junbo Zhao, and Wei Li. Seeing, listening, remembering, and reasoning: A multimodal agent with long-term
+memory. arXiv preprint arXiv:2508.09736, 2025. 9
+[16] Adyasha Maharana, Dong-Ho Lee, Sergey Tulyakov, Mohit Bansal, Francesco Barbieri, and Yuwei Fang. Evaluating
+very long-term conversational memory of llm agents. arXiv
+preprint arXiv:2402.17753, 2024. 7
+[17] Kevin Meng, David Bau, Alex Andonian, and Yonatan Belinkov. Locating and editing factual associations in gpt. Advances in neural information processing systems, 35:17359–
+17372, 2022. 9
+[18] Daiye Miao, Yufang Liu, Jie Wang, Changzhi Sun, Yunke
+Zhang, Demei Yan, Shaokang Dong, Qi Zhang, and Yuanbin
+Wu. Taso: Task-aligned sparse optimization for parameterefficient model adaptation. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, pages 22746–22758, 2025. 9
+[19] Jiayan Nan, Wenquan Ma, Wenlong Wu, and Yize Chen.
+Nemori: Self-organizing agent memory inspired by cognitive science. arXiv preprint arXiv:2508.03341, 2025. 8
+[20] Charles Packer, Vivian Fang, Shishir G Patil, Kevin Lin,
+Sarah Wooders, and Joseph E Gonzalez. Memgpt: Towards
+llms as operating systems. 2023. 8
+
+[21] Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Xufang Luo, Hao
+Cheng, Dongsheng Li, Yuqing Yang, Chin-Yew Lin, H Vicky
+Zhao, Lili Qiu, et al. Secom: On memory construction
+and retrieval for personalized conversational agents. In The
+Thirteenth International Conference on Learning Representations, 2025. 1
+[22] Preston Rasmussen, Pavlo Paliychuk, Travis Beauvais, Jack
+Ryan, and Daniel Chalef. Zep: a temporal knowledge
+graph architecture for agent memory.
+arXiv preprint
+arXiv:2501.13956, 2025. 2, 8
+[23] Yi Tay, Vinh Tran, Mostafa Dehghani, Jianmo Ni, Dara
+Bahri, Harsh Mehta, Zhen Qin, Kai Hui, Zhe Zhao, Jai
+Gupta, et al. Transformer memory as a differentiable search
+index. Advances in Neural Information Processing Systems,
+35:21831–21843, 2022. 9
+[24] Memobase Development Team. Beyond rag: Memobase - a
+user profile-based long-term memory system. Online Blog
+& GitHub Repository, 2025. 7
+[25] Qingyue Wang, Yanhe Fu, Yanan Cao, Shuai Wang, Zhiliang Tian, and Liang Ding. Recursively summarizing enables long-term dialogue memory in large language models.
+Neurocomputing, 639:130193, 2025. 1
+[26] Rongzheng Wang, Shuang Liang, Qizhi Chen, Yihong
+Huang, Muquan Li, Yizhuo Ma, Dongyang Zhang, Ke Qin,
+and Man-Fai Leung. Graphcogent: Mitigating llms’ working
+memory constraints via multi-agent collaboration in complex graph understanding. arXiv preprint arXiv:2508.12379,
+2025. 8
+[27] Weizhi Wang, Li Dong, Hao Cheng, Xiaodong Liu, Xifeng
+Yan, Jianfeng Gao, and Furu Wei. Augmenting language
+models with long-term memory. Advances in Neural Information Processing Systems, 36:74530–74543, 2023. 9
+[28] Xiaohan Wang, Yuhui Zhang, Orr Zohar, and Serena YeungLevy. Videoagent: Long-form video understanding with
+large language model as agent. In European Conference on
+Computer Vision, pages 58–76. Springer, 2024. 9
+[29] Xinyu Wang, Changzhi Sun, Lian Cheng, Yuanbin Wu, Dell
+Zhang, Xiaoling Wang, and Xuelong Li. Logic-regularized
+verifier elicits reasoning from llms. In Proceedings of the
+63rd Annual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers), pages 32617–32630,
+2025. 1
+[30] Yu Wang and Xi Chen. Mirix: Multi-agent memory system for llm-based agents. arXiv preprint arXiv:2507.07957,
+2025. 8
+[31] Rubin Wei, Jiaqi Cao, Jiarui Wang, Jushi Kai, Qipeng Guo,
+Bowen Zhou, and Zhouhan Lin. Mlp memory: A retrieverpretrained memory for large language models. arXiv preprint
+arXiv:2508.01832, 2025. 9
+[32] Yaxiong Wu, Yongyue Zhang, Sheng Liang, and Yong Liu.
+Sgmem: Sentence graph memory for long-term conversational agents. arXiv preprint arXiv:2509.21212, 2025. 8
+[33] Siyu Xia, Zekun Xu, Jiajun Chai, Wentian Fan, Yan Song,
+Xiaohan Wang, Guojun Yin, Wei Lin, Haifeng Zhang, and
+Jun Wang. From experience to strategy: Empowering
+llm agents with trainable graph memory. arXiv preprint
+arXiv:2511.07800, 2025. 8
+
+[34] Mufan Xu, Gewen Liang, Kehai Chen, Wei Wang, Xun
+Zhou, Muyun Yang, Tiejun Zhao, and Min Zhang. Memoryaugmented query reconstruction for llm-based knowledge
+graph reasoning. arXiv preprint arXiv:2503.05193, 2025. 8
+[35] Wujiang Xu, Zujie Liang, Kai Mei, Hang Gao, Juntao Tan,
+and Yongfeng Zhang. A-mem: Agentic memory for llm
+agents. arXiv preprint arXiv:2502.12110, 2025. 7, 8
+[36] Xiwei Xu, Robert Mao, Quan Bai, Xuewu Gu, Yechao Li,
+and Liming Zhu. Everything is context: Agentic file system
+abstraction for context engineering, 2025. 1
+[37] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,
+Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen
+Huang, Chenxu Lv, et al. Qwen3 technical report. arXiv
+preprint arXiv:2505.09388, 2025. 1, 7
+[38] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran,
+Karthik R Narasimhan, and Yuan Cao. React: Synergizing
+reasoning and acting in language models. In The eleventh
+international conference on learning representations, 2022.
+2
+[39] Xinlei Yu, Chengming Xu, Guibin Zhang, Zhangquan Chen,
+Yudong Zhang, Yongbo He, Peng-Tao Jiang, Jiangning
+Zhang, Xiaobin Hu, and Shuicheng Yan. Vismem: Latent
+vision memory unlocks potential of vision-language models.
+arXiv preprint arXiv:2511.11007, 2025. 9
+[40] Dell Zhang, Yue Feng, Haiming Liu, Changzhi Sun, Jixiang Luo, Xiangyu Chen, and Xuelong Li. Conversational
+agents: From rag to ltm. In Proceedings of the 2025 Annual International ACM SIGIR Conference on Research and
+Development in Information Retrieval in the Asia Pacific Region, pages 447–452, 2025. 1
+[41] Guibin Zhang, Muxin Fu, Guancheng Wan, Miao Yu, Kun
+Wang, and Shuicheng Yan. G-memory: Tracing hierarchical memory for multi-agent systems. arXiv preprint
+arXiv:2506.07398, 2025. 8
+[42] Kai Zhang, Yejin Kim, and Xiaozhong Liu. Personalized llm
+response generation with parameterized memory injection.
+arXiv preprint arXiv:2404.03565, 2024. 9
+[43] Xiaoyi Zhang, Zhaoyang Jia, Zongyu Guo, Jiahao Li, Bin
+Li, Houqiang Li, and Yan Lu. Deep video discovery: Agentic search with tool use for long-form video understanding.
+arXiv preprint arXiv:2505.18079, 2025. 9
+[44] Qingfei Zhao, Ruobing Wang, Yukuo Cen, Daren Zha,
+Shicheng Tan, Yuxiao Dong, and Jie Tang. Longrag: A
+dual-perspective retrieval-augmented generation paradigm
+for long-context question answering. In Proceedings of the
+2024 Conference on Empirical Methods in Natural Language Processing, pages 22600–22632, 2024. 1
+[45] Wanjun Zhong, Lianghong Guo, Qiqi Gao, He Ye, and Yanlin Wang. Memorybank: Enhancing large language models
+with long-term memory. In Proceedings of the AAAI Conference on Artificial Intelligence, pages 19724–19731, 2024. 1,
+8
+
+A. Example Memory Entries
+This section provides representative JSON snippets illustrating how different types of memory nodes are serialized
+in our system. These examples are intended to clarify the
+unified schema, field semantics, and provenance information used by the memory graph, rather than to enumerate all
+possible attributes.
+
+the entry records the original messages, roles, and temporal information, enabling traceability back to raw conversational context and supporting dependency-aware retrieval.
+
+Figure 5. Example JSON snippet of a video event memory entry.
+
+Figure 3. Example JSON snippet of a text profile memory entry.
+
+Video event memory. Figure 5 presents a video event
+memory entry that encodes localized multimodal observations. Besides the textual caption, such entries may include
+aligned timestamps, clip references, or auxiliary annotations, which allow the system to ground high-level semantics in concrete visual evidence.
+
+Text profile memory. Figure 3 shows an example of a
+text profile memory entry, which captures relatively stable
+attributes of a user or an agent. Such entries typically include a high-level semantic summary, a persistent identifier, and lightweight metadata (e.g., timestamps or session
+indices) that enable long-term tracking and consolidation
+across interactions.
+Figure 6. Example JSON snippet of an object memory entry.
+
+Object memory. Figure 6 shows an object memory entry
+representing a persistent entity tracked across video frames
+or scenes. Typical fields include object identity, appearance
+attributes, behavioral cues, and the first observed timestamp, supporting long-term entity consistency and temporal
+reasoning.
+
+Figure 4. Example JSON snippet of a text event memory entry.
+
+Text event memory. Figure 4 illustrates a text event
+memory entry corresponding to a single interaction or dialogue turn. In addition to the summarized semantic content,
+
+

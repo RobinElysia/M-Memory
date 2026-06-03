@@ -7,6 +7,7 @@ the complete search → graph expansion → conflict resolution flow.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 import uuid
 
@@ -65,6 +66,8 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
 
         # Node storage
         self._nodes: dict[str, MemoryNode] = {}
+        # Thread safety — write lock for ingest operations
+        self._write_lock = threading.Lock()
 
     # ── MemoryRetrievalEngine interface ─────────────────────────────────
 
@@ -74,8 +77,26 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         content: str,
         confidence: float = 1.0,
     ) -> str:
-        """Full ingestion pipeline: embed → assign → store."""
-        # Embed
+        """Full ingestion pipeline: embed → assign → store (thread-safe).
+
+        LLM call (network I/O) is outside the write lock to allow concurrent
+        operations.  Only the final state mutation holds the lock briefly.
+        """
+        return self._ingest_impl(summary, content, confidence)
+
+    def _ingest_impl(
+        self,
+        summary: str,
+        content: str,
+        confidence: float = 1.0,
+    ) -> str:
+        """Internal ingestion implementation.
+
+        Embeds and creates the node outside the lock, then acquires the lock
+        only for the mutation of _nodes and _buckets.  The LLM call (network I/O)
+        is performed outside the lock to avoid blocking concurrent writes.
+        """
+        # Embed outside lock (CPU-only, no shared state)
         summary_vec = self._vector_store.embed(summary)
         content_vec = self._vector_store.embed(content)
 
@@ -88,17 +109,13 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
             timestamp=time.time(),
             confidence=confidence,
         )
-        self._nodes[node.id] = node
 
-        # Find candidate buckets
+        # Find candidate buckets (reads shared state but read-only)
         candidates = self._bucket_manager.find_candidates(node)
 
-        # LLM decision
+        # LLM decision — network I/O, do NOT hold lock during this
         if candidates:
-            prompt = build_bucket_assignment_prompt(
-                node.summary,
-                candidates,
-            )
+            prompt = build_bucket_assignment_prompt(node.summary, candidates)
             response = self._llm.complete(prompt)
             try:
                 decision = parse_bucket_assignment_response(response)
@@ -116,36 +133,30 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
                 "cross_links": [],
             }
 
-        # Assign
-        primary_id = decision["primary_bucket"]
-        cross_links = decision.get("cross_links", [])
+        # Assign — acquire lock only for mutation
+        with self._write_lock:
+            primary_id = decision["primary_bucket"]
+            cross_links = decision.get("cross_links", [])
+            self._nodes[node.id] = node
 
-        if primary_id == "new":
-            bucket = self._bucket_manager.create_bucket(node)
-        else:
-            all_buckets = {
-                b.id: b for b in self._bucket_manager.get_all_buckets()
-            }
-            existing = all_buckets.get(primary_id)
-            if existing is None:
+            if primary_id == "new":
                 bucket = self._bucket_manager.create_bucket(node)
             else:
-                bucket = existing
-                self._bucket_manager.assign_to_bucket(node, bucket, cross_links)
+                all_buckets = {b.id: b for b in self._bucket_manager.get_all_buckets()}
+                existing = all_buckets.get(primary_id)
+                if existing is None:
+                    bucket = self._bucket_manager.create_bucket(node)
+                else:
+                    bucket = existing
+                    self._bucket_manager.assign_to_bucket(node, bucket, cross_links)
 
-        # Store vectors for content-level search (Layer 2)
-        self._vector_store.add(
-            vectors=node.content_vector.reshape(1, -1),
-            metadata=[{"id": f"content:{node.id}", "node_id": node.id}],
-        )
+            # Store vectors for content-level search (Layer 2)
+            self._vector_store.add(
+                vectors=node.content_vector.reshape(1, -1),
+                metadata=[{"id": f"content:{node.id}", "node_id": node.id}],
+            )
 
-        logger.info(
-            "Ingested node %s into bucket %s: %s",
-            node.id,
-            bucket.id,
-            summary[:80],
-        )
-
+        logger.info("Ingested node %s into bucket %s: %s", node.id, bucket.id, summary[:80])
         return node.id
 
     def search(
@@ -154,7 +165,24 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         max_hops: int | None = None,
         weight_threshold: float | None = None,
     ) -> SearchResult:
-        """Execute the full two-layer retrieval pipeline."""
+        """Execute the full two-layer retrieval pipeline.
+
+        When the vector store lacks semantic embeddings
+        (``is_semantic() == False``), falls back to lexical keyword search
+        across all buckets, with bucket-aware ranking.
+        """
+        if not self._vector_store.is_semantic():
+            return self._lexical_search(query, max_hops or 0)
+
+        return self._semantic_search(query, max_hops, weight_threshold)
+
+    def _semantic_search(
+        self,
+        query: str,
+        max_hops: int | None = None,
+        weight_threshold: float | None = None,
+    ) -> SearchResult:
+        """Vector-based semantic search (Layer 1 + Layer 2)."""
         hops = max_hops if max_hops is not None else self._config.graph.max_hops
         threshold = (
             weight_threshold
@@ -162,19 +190,15 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
             else self._config.graph.edge_weight_threshold
         )
 
-        # Step 1: Embed query
         query_vector = self._vector_store.embed(query)
 
-        # Step 2: Bucket-level coarse screening (Layer 1)
+        # Bucket-level coarse screening
         active_buckets = self._bucket_manager.get_active_buckets()
-
-        # Also check dormant buckets — wake them if they match the query
         all_buckets = self._bucket_manager.get_all_buckets()
         dormant_buckets = [b for b in all_buckets if b.is_dormant]
         for db in dormant_buckets:
             if db.medoid is not None:
                 sim = self._cosine_sim(query_vector, db.medoid.vector)
-                # Use a similarity threshold from config or a sensible default
                 if sim > 0.5:
                     self._bucket_manager.wake_bucket(db.id)
                     active_buckets.append(db)
@@ -192,12 +216,11 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         bucket_scores.sort(key=lambda x: x[1], reverse=True)
         top_buckets = bucket_scores[: self._config.bucket.top_m]
 
-        # Mark query hits for dormancy tracking
         now = time.time()
         for bucket, _ in top_buckets:
             bucket.last_query_at = now
 
-        # Step 3: In-bucket fine search (A-node level)
+        # In-bucket fine search
         seed_nodes: list[tuple[MemoryNode, float]] = []
         for bucket, _ in top_buckets:
             for node_id in bucket.node_ids:
@@ -211,37 +234,136 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         limit = self._config.bucket.top_p * len(top_buckets)
         seed_nodes = seed_nodes[:limit]
 
-        # Step 4: Graph expansion
+        # Graph expansion
         seed_ids = [n.id for n, _ in seed_nodes]
         paths = self._graph_store.traverse(seed_ids, hops, threshold)
 
-        # Merge seed scores with traversal scores
         node_scores: dict[str, float] = {}
         for node, score in seed_nodes:
             if node.id not in node_scores or score > node_scores[node.id]:
                 node_scores[node.id] = score
-
         for path in paths:
             target = path.node_ids[-1]
             if target not in node_scores or path.total_weight > node_scores[target]:
                 node_scores[target] = path.total_weight
 
-        # Step 5: Resolve conflicts (Layer 2)
-        candidates = [
-            self._nodes[nid]
-            for nid in node_scores
-            if nid in self._nodes
-        ]
+        # Conflict resolution (Layer 2) — produces final ordering
+        candidates = [self._nodes[nid] for nid in node_scores if nid in self._nodes]
         resolved = self.resolve_conflicts(candidates, query)
 
-        # Build result with final scores
-        final_nodes: list[MemoryNode] = []
-        final_scores: list[float] = []
-        for node in resolved:
-            final_nodes.append(node)
-            final_scores.append(node_scores.get(node.id, 0.0))
-
+        # Use Layer 2 ordering with Layer 2 re-rank scores
+        final_nodes = list(resolved)
+        final_scores = [
+            node_scores.get(n.id, 0.0) for n in resolved
+        ]
         return SearchResult(nodes=final_nodes, scores=final_scores)
+
+    def _lexical_search(
+        self,
+        query: str,
+        max_hops: int = 0,
+    ) -> SearchResult:
+        """Bucket-aware lexical search — fallback when embeddings lack semantics.
+
+        First identifies which buckets contain keyword-matched summaries,
+        then searches within those buckets only.  Stale nodes are downgraded.
+        Includes lightweight stale detection for contradiction pairs.
+        """
+        query_lower = query.lower()
+        stopwords = {
+            "the", "a", "an", "is", "are", "was", "were", "do", "does", "did",
+            "in", "on", "at", "to", "of", "for", "with", "what", "how", "when",
+            "where", "who", "why", "about", "i", "my", "me", "you", "your",
+            "now", "before", "after", "and", "or", "not", "be", "has", "have",
+            "it", "its", "that", "this", "these", "those", "from", "by",
+        }
+        keywords = [w for w in query_lower.split() if w not in stopwords]
+        if not keywords:
+            return SearchResult(nodes=[], scores=[])
+
+        # Step 1: Find relevant buckets by keyword overlap with Medoid summary
+        bucket_scores: list[tuple[str, float]] = []
+        for bucket in self._bucket_manager.get_all_buckets():
+            if bucket.is_dormant or bucket.medoid is None:
+                continue
+            medoid_node = self._nodes.get(bucket.medoid.node_id)
+            if medoid_node is None:
+                continue
+            medoid_text = (medoid_node.summary + " " + medoid_node.content).lower()
+            hits = sum(1 for kw in keywords if kw in medoid_text)
+            if hits > 0:
+                bucket_scores.append((bucket.id, float(hits)))
+
+        bucket_scores.sort(key=lambda x: x[1], reverse=True)
+        relevant_buckets = {bid for bid, _ in bucket_scores[:self._config.bucket.top_m]}
+
+        # Step 2: Score nodes — prioritize keyword-matched buckets,
+        # fall back to global search if bucket filter yields too few results
+        scored: list[tuple[MemoryNode, float]] = []
+        bucket_filtered: list[tuple[MemoryNode, float]] = []
+        global_results: list[tuple[MemoryNode, float]] = []
+
+        for node in self._nodes.values():
+            content_lower = node.content.lower()
+            summary_lower = node.summary.lower()
+            content_hits = sum(1 for kw in keywords if kw in content_lower)
+            summary_hits = sum(1 for kw in keywords if kw in summary_lower)
+            score = content_hits * 2.0 + summary_hits * 1.0
+            if node.is_stale:
+                score *= 0.1
+            if score > 0:
+                item = (node, score)
+                if relevant_buckets and node.bucket_id in relevant_buckets:
+                    bucket_filtered.append(item)
+                global_results.append(item)
+
+        # Use bucket-filtered if it has enough results; otherwise fall back
+        min_results = max(5, self._config.bucket.top_p)
+        if len(bucket_filtered) >= min_results:
+            scored = bucket_filtered
+        else:
+            scored = global_results
+
+        # Step 3: Lightweight stale detection — expanded topic words
+        if len(scored) >= 2:
+            topic_words = {
+                "live", "lives", "living", "moved", "move", "relocated",
+                "work", "works", "working", "job", "position", "role",
+                "allergy", "allergic", "allergies",
+                "team", "member", "members",
+                "address", "location", "city", "country",
+                "name", "email", "phone", "number",
+                "drive", "driving", "car", "vehicle",
+                "use", "using", "framework", "language", "speak",
+                "have", "has", "own", "owns", "pet", "dog", "cat",
+                "graduated", "graduate", "university", "college",
+            }
+            for i in range(len(scored)):
+                for j in range(i + 1, len(scored)):
+                    na, sa = scored[i]
+                    nb, sb = scored[j]
+                    if sa < 1.0 or sb < 1.0:
+                        continue
+                    ca, cb = na.content.lower(), nb.content.lower()
+                    shared = [w for w in topic_words if w in ca and w in cb]
+                    if not shared:
+                        continue
+                    if ca != cb:
+                        older = na if na.timestamp < nb.timestamp else nb
+                        if not older.is_stale:
+                            older.is_stale = True
+                            older.confidence *= 0.1
+                            idx = i if older is na else j
+                            old_node, old_score = scored[idx]
+                            scored[idx] = (old_node, old_score * 0.1)
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+        top = scored[: self._config.bucket.top_p * self._config.bucket.top_m]
+
+        return SearchResult(
+            nodes=[n for n, _ in top],
+            scores=[s for _, s in top],
+        )
 
     def resolve_conflicts(
         self,

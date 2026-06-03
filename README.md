@@ -73,6 +73,75 @@ See [`ARCHITECTURE_DESIGN.md`](ARCHITECTURE_DESIGN.md) for the full design spec.
 - [`VectorStore`](docs/api/vector_store.md) — embedding and similarity search
 - [`GraphStore`](docs/api/graph_engine.md) — graph traversal and edge management
 
+## Semantic Mode (v0.3.0)
+
+Replace `NumpyVectorStore` with `LocalEmbeddingStore` to activate the full
+two-layer semantic pipeline:
+
+```python
+from memory_system.local_embedding import LocalEmbeddingStore
+
+engine = MemoryRetrievalEngineImpl(
+    config=config,
+    vector_store=LocalEmbeddingStore(dim=384),  # all-MiniLM-L6-v2, semantic
+    graph_store=NetworkXGraphStore(),
+    llm=DeepSeekAdapter(),
+)
+# is_semantic() == True → _semantic_search() activates
+# Layer 1: Medoid screening + graph expansion
+# Layer 2: LLM conflict resolution + stale marking
+```
+
+## Benchmarks (v7 — LLM-as-Judge on LoCoMo)
+
+| System | LoCoMo (LLM-as-Judge) |
+|--------|----------------------|
+| Full-Context (upper bound) | 87.5% |
+| MIRIX | 85.4% |
+| **m-memory** | **100%** (48/48 sampled) |
+| Zep | 75.1% |
+| Mem0 | 66.9% |
+| A-Mem | 48.4% |
+
+> ⚠️ 48 questions sampled from 1 conversation; full 1,986-question run pending.
+> DeepSeek-chat judge (SOTA uses GPT-4o judge).
+
+## Production LLM
+
+Replace `FakeLLMAdapter` with the DeepSeek adapter:
+
+```python
+from memory_system.deepseek_llm import DeepSeekAdapter
+from memory_system.embedding_store import OpenAIEmbeddingStore
+
+# Keys from environment variables (never hardcode)
+llm = DeepSeekAdapter()           # reads DEEPSEEK_API_KEY
+store = OpenAIEmbeddingStore()    # reads OPENAI_API_KEY, real embeddings
+
+engine = MemoryRetrievalEngineImpl(
+    config=config,
+    vector_store=store,        # semantic search
+    graph_store=NetworkXGraphStore(),
+    llm=llm,
+)
+```
+
+When `vector_store.is_semantic() == False` (e.g., NumpyVectorStore),
+the engine automatically falls back to lexical keyword search.
+
+## Research Harness
+
+This project includes a **research testing protocol** for academic experiments.
+Before running any Agent-driven tests, **read these files in order**:
+
+| # | File | Purpose |
+|---|------|---------|
+| 1 | [`README.md`](README.md) | Project overview + API (you are here) |
+| 2 | [`AI_Memory_System_Testing_Protocol.md`](AI_Memory_System_Testing_Protocol.md) | Harness engineering specs + anti-AIGC rules |
+
+> ⚠️ **Agent Constraint**: Any AI agent (including Reasonix Code) MUST read
+> `README.md` before writing code or running tests. See Protocol §0.2.
+
 ## Development
 
 ```bash

@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="m-memory Architecture" id="arch">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" background="#ffffff">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="m-memory Dual-Layer Memory Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;fontColor=#1a1a2e;" vertex="1" parent="1">
+          <mxGeometry x="350" y="10" width="600" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ====== INGESTION PIPELINE (Left) ====== -->
+        <mxCell id="ingest_label" value="Ingestion Pipeline" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#e74c3c;" vertex="1" parent="1">
+          <mxGeometry x="30" y="55" width="160" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user_input" value="User Input&lt;br&gt;(summary + content)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fadbd8;strokeColor=#e74c3c;strokeWidth=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="embed" value="Embed&lt;br&gt;(A-vec + C-vec)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fadbd8;strokeColor=#e74c3c;strokeWidth=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="160" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="llm_decide" value="LLM Decision&lt;br&gt;(bucket assignment)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5b7b1;strokeColor=#e74c3c;strokeWidth=2;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="230" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="assign" value="Assign to Bucket&lt;br&gt;+ Cross-Bucket Edges" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fadbd8;strokeColor=#e74c3c;strokeWidth=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="300" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows ingestion -->
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#e74c3c;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="user_input" target="embed"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#e74c3c;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="embed" target="llm_decide"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#e74c3c;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="llm_decide" target="assign"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- ====== BUCKET STRUCTURE (Center) ====== -->
+        <mxCell id="bucket_label" value="Bucket Structure (Memory Store)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#2e86c1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="55" width="240" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Bucket 1 -->
+        <mxCell id="b1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d6eaf8;strokeColor=#2e86c1;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="85" width="100" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="b1_label" value="Bucket A" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontStyle=1;fontColor=#2e86c1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="88" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="b1_medoid" value="Medoid ★" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85c1e9;strokeColor=#2e86c1;strokeWidth=2;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="110" width="80" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b1_n1" value="Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d6eaf8;strokeColor=#2e86c1;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="260" y="148" width="35" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="b1_n2" value="Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d6eaf8;strokeColor=#2e86c1;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="305" y="148" width="35" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="b1_n3" value="Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d6eaf8;strokeColor=#2e86c1;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="280" y="178" width="35" height="22" as="geometry"/>
+        </mxCell>
+
+        <!-- Bucket 2 -->
+        <mxCell id="b2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5f5e3;strokeColor=#27ae60;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="85" width="100" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="b2_label" value="Bucket B" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontStyle=1;fontColor=#27ae60;" vertex="1" parent="1">
+          <mxGeometry x="380" y="88" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="b2_medoid" value="Medoid ★" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#82e0aa;strokeColor=#27ae60;strokeWidth=2;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="110" width="80" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b2_n1" value="Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5f5e3;strokeColor=#27ae60;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="380" y="148" width="35" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="b2_n2" value="Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5f5e3;strokeColor=#27ae60;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="425" y="148" width="35" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="b2_n3" value="Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5f5e3;strokeColor=#27ae60;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="400" y="178" width="35" height="22" as="geometry"/>
+        </mxCell>
+
+        <!-- Bucket 3 -->
+        <mxCell id="b3_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9e79f;strokeColor=#f39c12;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="250" width="100" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="b3_label" value="Bucket C" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontStyle=1;fontColor=#f39c12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="253" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="b3_medoid" value="Medoid ★" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f7dc6f;strokeColor=#f39c12;strokeWidth=2;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="275" width="80" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="b3_n1" value="Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9e79f;strokeColor=#f39c12;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="320" y="315" width="35" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="b3_n2" value="Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9e79f;strokeColor=#f39c12;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="365" y="315" width="35" height="22" as="geometry"/>
+        </mxCell>
+
+        <!-- Cross-bucket edges -->
+        <mxCell id="cross1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#8e44ad;strokeWidth=2;dashed=1;endArrow=classic;" edge="1" parent="1" source="b1_medoid" target="b2_medoid">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="cross_label" value="cross-bucket edge (weighted)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=8;fontColor=#8e44ad;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="345" y="80" width="90" height="12" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: ingest → bucket -->
+        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#e74c3c;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="assign" target="b1_medoid">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="200" y="325"/><mxPoint x="200" y="125"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ====== RETRIEVAL PIPELINE (Right) ====== -->
+        <mxCell id="ret_label" value="Retrieval Pipeline (Dual-Layer)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#8e44ad;" vertex="1" parent="1">
+          <mxGeometry x="550" y="55" width="230" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="query_in" value="User Query" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8daef;strokeColor=#8e44ad;strokeWidth=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="590" y="90" width="140" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Layer 1 box -->
+        <mxCell id="l1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4ecf7;strokeColor=#8e44ad;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="145" width="240" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1_label" value="Layer 1: Coarse Screening" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontStyle=1;fontColor=#8e44ad;" vertex="1" parent="1">
+          <mxGeometry x="555" y="148" width="210" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1_s1" value="Medoid Screen&lt;br&gt;(top-m buckets)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8daef;strokeColor=#8e44ad;strokeWidth=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="555" y="172" width="95" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1_arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#8e44ad;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="l1_s1" target="l1_s2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1_s2" value="In-Bucket&lt;br&gt;Fine Search" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8daef;strokeColor=#8e44ad;strokeWidth=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="670" y="172" width="95" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1_s3" value="Graph BFS&lt;br&gt;Expansion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d2b4de;strokeColor=#8e44ad;strokeWidth=1;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="225" width="100" height="38" as="geometry"/>
+        </mxCell>
+
+        <!-- Layer 2 box -->
+        <mxCell id="l2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdebd0;strokeColor=#e67e22;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="300" width="240" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2_label" value="Layer 2: Conflict Resolution" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontStyle=1;fontColor=#e67e22;" vertex="1" parent="1">
+          <mxGeometry x="555" y="303" width="210" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2_s1" value="Weighted&lt;br&gt;Re-rank" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdebd0;strokeColor=#e67e22;strokeWidth=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="555" y="328" width="65" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2_arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#e67e22;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="l2_s1" target="l2_s2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2_s2" value="LLM Conflict&lt;br&gt;Detection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5b041;strokeColor=#e67e22;strokeWidth=1;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="635" y="328" width="70" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2_s3" value="Stale&lt;br&gt;Marking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdebd0;strokeColor=#e67e22;strokeWidth=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="595" y="378" width="65" height="28" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="result_out" value="Ranked Results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5f5e3;strokeColor=#27ae60;strokeWidth=2;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="430" width="140" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Retrieval arrows -->
+        <mxCell id="r1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#8e44ad;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="query_in" target="l1_box"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#e67e22;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="l1_box" target="l2_box"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="r3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#27ae60;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="l2_box" target="result_out"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#999;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="430" width="250" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="435" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5b7b1;strokeColor=#e74c3c;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="45" y="458" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1_t" value="LLM Decision Node" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="72" y="456" width="120" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85c1e9;strokeColor=#2e86c1;strokeWidth=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="45" y="478" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2_t" value="Bucket Medoid (★)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="72" y="476" width="120" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#8e44ad;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="45" y="502" as="sourcePoint"/><mxPoint x="65" y="502" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="leg3_t" value="Cross-Bucket Edge" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="72" y="494" width="120" height="18" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

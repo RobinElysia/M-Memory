@@ -132,6 +132,17 @@ class VectorStore(ABC):
         """
         ...
 
+    @abstractmethod
+    def is_semantic(self) -> bool:
+        """Return whether embeddings are semantically meaningful.
+
+        Hash/deterministic implementations MUST return ``False``.
+        Model-based implementations (OpenAI, Cohere, local models) MUST
+        return ``True``.  Callers may use this to choose between
+        vector-based and lexical retrieval paths.
+        """
+        ...
+
 
 class LLMAdapter(ABC):
     """Abstraction over a large-language-model backend.

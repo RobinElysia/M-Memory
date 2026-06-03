@@ -1,0 +1,244 @@
+{
+  "summary": {
+    "overall_accuracy": 73.5,
+    "total_questions": 34,
+    "total_correct": 25,
+    "nodes": 136,
+    "buckets": 13,
+    "stale": 0,
+    "llm_calls": 203,
+    "total_tokens": 87628,
+    "avg_tokens_per_call": 432
+  },
+  "competencies": [
+    {
+      "competency": "AR",
+      "accuracy": 80.0,
+      "details": [
+        {
+          "query": "What is Alex's email address?",
+          "expected": "alex.chen@example.com",
+          "answer": "alex.chen@example.com",
+          "correct": true
+        },
+        {
+          "query": "Where does Alex live?",
+          "expected": "Shenzhen",
+          "answer": "Alex lives in Shenzhen, Nanshan District, near Tencent Binhai Building.",
+          "correct": true
+        },
+        {
+          "query": "Where does Alex work?",
+          "expected": "Tencent",
+          "answer": "Alex works at Tencent, in the WeChat Pay division, focusing on AI infrastructure.",
+          "correct": true
+        },
+        {
+          "query": "What project does Alex lead?",
+          "expected": "Alpha",
+          "answer": "Project Alpha.",
+          "correct": true
+        },
+        {
+          "query": "How many team members?",
+          "expected": "5",
+          "answer": "5",
+          "correct": true
+        },
+        {
+          "query": "When is the project deadline?",
+          "expected": "June 30, 2025",
+          "answer": "June 30, 2025",
+          "correct": true
+        },
+        {
+          "query": "What is Alex allergic to?",
+          "expected": "seafood",
+          "answer": "Alex is allergic to shrimp and crab (mild seafood allergy).",
+          "correct": true
+        },
+        {
+          "query": "Where did Alex graduate from?",
+          "expected": "Tsinghua",
+          "answer": "Tsinghua University, Computer Science, class of 2018.",
+          "correct": true
+        },
+        {
+          "query": "What pet does Alex have?",
+          "expected": "golden retriever",
+          "answer": "Not found in memory",
+          "correct": false
+        },
+        {
+          "query": "What car does Alex drive?",
+          "expected": "Tesla",
+          "answer": "Not found in memory",
+          "correct": false
+        },
+        {
+          "query": "What is Alex's daughter's name?",
+          "expected": "Emma",
+          "answer": "Not found in memory",
+          "correct": false
+        },
+        {
+          "query": "What programming languages?",
+          "expected": "not found",
+          "answer": "Not found in memory",
+          "correct": true
+        },
+        {
+          "query": "How old is Alex?",
+          "expected": "29",
+          "answer": "29 years old.",
+          "correct": true
+        },
+        {
+          "query": "Where is Alex going for vacation?",
+          "expected": "Japan",
+          "answer": "Japan",
+          "correct": true
+        },
+        {
+          "query": "What Go rank is Alex?",
+          "expected": "3-dan",
+          "answer": "3-dan amateur Go player.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "competency": "SF",
+      "accuracy": 62.5,
+      "details": [
+        {
+          "scenario": "Location change",
+          "query": "Where do I live now?",
+          "answer": "Shenzhen, Nanshan District, near Tencent Binhai Building",
+          "correct": false
+        },
+        {
+          "scenario": "Location change",
+          "query": "Where did I live before?",
+          "answer": "Based on the stored facts, you previously lived in Beijing, Haidian District, near Tsinghua University.",
+          "correct": true
+        },
+        {
+          "scenario": "Job switch",
+          "query": "Where do I work now?",
+          "answer": "Alibaba Cloud as a tech lead.",
+          "correct": true
+        },
+        {
+          "scenario": "Job switch",
+          "query": "Where did I work before?",
+          "answer": "Based on stored facts, you worked at ByteDance as a senior engineer before your current role at Alibaba Cloud.",
+          "correct": true
+        },
+        {
+          "scenario": "Allergy correction",
+          "query": "What am I allergic to?",
+          "answer": "You are allergic to shellfish.",
+          "correct": true
+        },
+        {
+          "scenario": "Allergy correction",
+          "query": "What did I think I was allergic to?",
+          "answer": "Not found in memory.",
+          "correct": false
+        },
+        {
+          "scenario": "Team size growth",
+          "query": "How many team members now?",
+          "answer": "5 members: Li Wei, Zhang Min, Wang Fang, Liu Yang, Zhao Yu.",
+          "correct": true
+        },
+        {
+          "scenario": "Team size growth",
+          "query": "How many before the growth?",
+          "answer": "Not found in memory",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "competency": "LRU",
+      "accuracy": 77.8,
+      "details": [
+        {
+          "query": "Who leads the NeuroMem project?",
+          "answer": "Dr. Sarah Johnson leads the NeuroMem project.",
+          "correct": true
+        },
+        {
+          "query": "When did NeuroMem start?",
+          "answer": "NeuroMem project started on January 15, 2024.",
+          "correct": true
+        },
+        {
+          "query": "How many researchers?",
+          "answer": "Not found in memory",
+          "correct": false
+        },
+        {
+          "query": "What happened in March 2024?",
+          "answer": "March 2024: NeuroMem prototype completed with basic memory functions.",
+          "correct": true
+        },
+        {
+          "query": "What was the June 2024 milestone?",
+          "answer": "June 2024: NeuroMem alpha release, supports 10K memory nodes.",
+          "correct": true
+        },
+        {
+          "query": "What is the total budget?",
+          "answer": "2.5 million USD",
+          "correct": true
+        },
+        {
+          "query": "Where was NeuroMem presented?",
+          "answer": "Not found in memory",
+          "correct": false
+        },
+        {
+          "query": "When was v1.0 released?",
+          "answer": "January 2025.",
+          "correct": true
+        },
+        {
+          "query": "How many GitHub stars?",
+          "answer": "500+ GitHub stars",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "competency": "TTL",
+      "accuracy": 50.0,
+      "details": [
+        {
+          "scenario": "User preferences",
+          "answer": "Based on the stored memories, here is a summary of user preferences:\n\n- **Name:** Alex Chen\n- **Age:** 29\n- **Occupation:** Software engineer at Tencent\n- **Location:** Beijing, Haidian District, near Tsinghua University\n- **Education:** Graduated from Tsinghua University, Computer Science (class of",
+          "hits": 0,
+          "keywords": [
+            "dark",
+            "silent",
+            "morning",
+            "coffee"
+          ]
+        },
+        {
+          "scenario": "K8s learning",
+          "answer": "Based on the stored information, here is a concise explanation of Kubernetes:\n\nKubernetes uses **pods** as the smallest deployable computing units. These pods are exposed via stable network endpoints using **services**. **Deployments** manage replica sets and rolling updates, while **ConfigMaps** st",
+          "hits": 4,
+          "keywords": [
+            "pod",
+            "service",
+            "deployment",
+            "configmap"
+          ]
+        }
+      ]
+    }
+  ]
+}

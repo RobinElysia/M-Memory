@@ -1,0 +1,117 @@
+{
+  "summary": {
+    "overall_pct": 93.0,
+    "questions": 71,
+    "correct": 66,
+    "nodes": 256,
+    "llm_calls": 315,
+    "total_tokens": 95773,
+    "avg_tokens_per_call": 304
+  },
+  "competencies": [
+    {
+      "competency": "AR",
+      "total": 40,
+      "correct": 40,
+      "accuracy_pct": 100.0,
+      "details": [
+        {
+          "q": "What is Alice Wang's email?",
+          "a": "Alice Wang's email is alice.wang@example.com.",
+          "ok": true
+        },
+        {
+          "q": "Where does Alice live?",
+          "a": "Alice lives in Shenzhen, Nanshan District.",
+          "ok": true
+        },
+        {
+          "q": "Where does Alice work?",
+          "a": "Alice works at Tencent as a senior engineer.",
+          "ok": true
+        },
+        {
+          "q": "What pet does Alice have?",
+          "a": "Alice has a golden retriever named Max.",
+          "ok": true
+        },
+        {
+          "q": "Where did Alice graduate from?",
+          "a": "Alice graduated from Tsinghua University in 2018.",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "competency": "SF",
+      "total": 16,
+      "correct": 11,
+      "accuracy_pct": 68.8,
+      "details": [
+        {
+          "scenario": "location_address_change",
+          "q": "Where do I live now?",
+          "a": "You live in Beijing, Haidian District.",
+          "ok": false
+        },
+        {
+          "scenario": "location_address_change",
+          "q": "Where did I live before?",
+          "a": "Based on the information provided, you currently live in Beijing, Haidian District. There is no prior location mentioned in your memories.",
+          "ok": true
+        },
+        {
+          "scenario": "job_company_switch",
+          "q": "Where do I work now?",
+          "a": "You work at Microsoft as a principal engineer.",
+          "ok": true
+        },
+        {
+          "scenario": "job_company_switch",
+          "q": "Where did I work before?",
+          "a": "Google",
+          "ok": true
+        },
+        {
+          "scenario": "food_allergy_correction",
+          "q": "What am I allergic to?",
+          "a": "You are allergic to shellfish.",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "competency": "LRU",
+      "total": 15,
+      "correct": 15,
+      "accuracy_pct": 100.0,
+      "details": [
+        {
+          "q": "Who leads Project Mercury?",
+          "a": "Dr. Alice Chen.",
+          "ok": true
+        },
+        {
+          "q": "When did Project Mercury officially start?",
+          "a": "March 1, 2024.",
+          "ok": true
+        },
+        {
+          "q": "How many researchers started on Mercury?",
+          "a": "12 researchers.",
+          "ok": true
+        },
+        {
+          "q": "What milestone happened in April 2024?",
+          "a": "April 2024 milestone: Mercury prototype completed with basic memory storage.",
+          "ok": true
+        },
+        {
+          "q": "What was the July 2024 milestone?",
+          "a": "July 2024: Mercury alpha release shipped, supporting 50K memory nodes per instance.",
+          "ok": true
+        }
+      ]
+    }
+  ]
+}

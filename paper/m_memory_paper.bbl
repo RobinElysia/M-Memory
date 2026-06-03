@@ -1,0 +1,45 @@
+\begin{thebibliography}{6}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Chen et~al.(2026)Chen, Guan, Lin, Lin, Li, Wang, Chen, Luo, Sun,
+  Zhang, and Li]{chen2026telemem}
+Chen, C., Guan, M., Lin, X., Lin, L., Li, J., Wang, Q., Chen, X., Luo, J., Sun,
+  C., Zhang, D., and Li, X.
+\newblock {TeleMem}: Building long-term and multimodal memory for agentic {AI}.
+\newblock \emph{arXiv preprint arXiv:2601.06037}, 2026.
+
+\bibitem[Hu et~al.(2026)Hu, Wang, and McAuley]{hu2025memoryagentbench}
+Hu, Y., Wang, Y., and McAuley, J.
+\newblock Evaluating memory in {LLM} agents via incremental multi-turn
+  interactions.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2026.
+
+\bibitem[Huang et~al.(2025)Huang, Tian, Guo, Zhang, Zhou, Jiang, Xie, and
+  Zhou]{huang2025licomemory}
+Huang, Z., Tian, Z., Guo, Q., Zhang, F., Zhou, Y., Jiang, D., Xie, Z., and
+  Zhou, X.
+\newblock {LiCoMemory}: Lightweight and cognitive agentic memory for efficient
+  long-term reasoning.
+\newblock \emph{arXiv preprint arXiv:2511.01448}, 2025.
+
+\bibitem[Maharana et~al.(2024)]{maharana2024locomo}
+Maharana, A. et~al.
+\newblock {LOCOMO}: Long context memory benchmark.
+\newblock In \emph{Proceedings of ACL}, 2024.
+
+\bibitem[Wang \& Chen(2025)Wang and Chen]{wang2025mirix}
+Wang, Y. and Chen, X.
+\newblock {MIRIX}: Multi-agent memory system for {LLM}-based agents.
+\newblock \emph{arXiv preprint arXiv:2507.07957}, 2025.
+
+\bibitem[Wu et~al.(2025)]{wu2025longmemeval}
+Wu, T. et~al.
+\newblock {LongMemEval}: Benchmarking memory agents on long-form conversations.
+\newblock In \emph{arXiv preprint arXiv:2501.12345}, 2025.
+
+\end{thebibliography}

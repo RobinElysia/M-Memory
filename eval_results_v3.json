@@ -1,0 +1,212 @@
+{
+  "summary": {
+    "overall_accuracy": 84.4,
+    "total_questions": 32,
+    "total_correct": 27,
+    "llm_calls": 152,
+    "total_tokens": 57039
+  },
+  "competencies": [
+    {
+      "competency": "AR",
+      "accuracy": 86.7,
+      "details": [
+        {
+          "query": "What is Alex's email?",
+          "expected": "alex.chen@example.com",
+          "answer": "Alex's email is alex.chen@example.com.",
+          "ok": true
+        },
+        {
+          "query": "Where does Alex live?",
+          "expected": "Shenzhen",
+          "answer": "Alex lives in Shenzhen, Nanshan District, near Tencent Binhai Building.",
+          "ok": true
+        },
+        {
+          "query": "Where does Alex work?",
+          "expected": "Tencent",
+          "answer": "Alex works at Tencent, in the WeChat Pay division, AI infrastructure team.",
+          "ok": true
+        },
+        {
+          "query": "What project does Alex lead?",
+          "expected": "Alpha",
+          "answer": "Alex leads Project Alpha.",
+          "ok": true
+        },
+        {
+          "query": "How many team members?",
+          "expected": "5",
+          "answer": "5",
+          "ok": true
+        },
+        {
+          "query": "When is the project deadline?",
+          "expected": "2025-06-30",
+          "answer": "The project deadline is 2025-06-30.",
+          "ok": true
+        },
+        {
+          "query": "Where did Alex graduate?",
+          "expected": "Tsinghua",
+          "answer": "Alex graduated from Tsinghua University, CS major, class of 2018.",
+          "ok": true
+        },
+        {
+          "query": "What pet does Alex have?",
+          "expected": "golden retriever",
+          "answer": "Alex has a golden retriever named Max.",
+          "ok": true
+        },
+        {
+          "query": "What car does Alex drive?",
+          "expected": "Tesla",
+          "answer": "Alex drives a Tesla Model Y, license YUE¡¤B12345.",
+          "ok": true
+        },
+        {
+          "query": "What is Alex allergic to?",
+          "expected": "seafood",
+          "answer": "Alex is allergic to shrimp and crab (mild seafood allergy).",
+          "ok": true
+        },
+        {
+          "query": "What is Alex's daughter's name?",
+          "expected": "Emma",
+          "answer": "I don't have information about Alex's daughter's name.",
+          "ok": false
+        },
+        {
+          "query": "How old is Alex's dog?",
+          "expected": "2",
+          "answer": "2 years old",
+          "ok": true
+        },
+        {
+          "query": "Where is Alex going for vacation?",
+          "expected": "Japan",
+          "answer": "Japan",
+          "ok": true
+        },
+        {
+          "query": "What languages does Alex speak?",
+          "expected": "Mandarin",
+          "answer": "Based on the stored memories, there is no information about what languages Alex speaks.",
+          "ok": false
+        },
+        {
+          "query": "When was the last team meeting?",
+          "expected": "2025-01-15",
+          "answer": "The last team meeting was on 2025-01-15.",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "competency": "SF",
+      "accuracy": 75.0,
+      "details": [
+        {
+          "scenario": "Location change",
+          "query": "Where do I live now?",
+          "answer": "You live in Beijing, Haidian District, near Tsinghua University.",
+          "ok": false
+        },
+        {
+          "scenario": "Location change",
+          "query": "Where did I live before?",
+          "answer": "Based on the stored facts, you currently live in Beijing, Haidian District, near Tsinghua University. There is no information about where you lived be",
+          "ok": true
+        },
+        {
+          "scenario": "Job switch",
+          "query": "Where do I work now?",
+          "answer": "Alibaba Cloud as a tech lead.",
+          "ok": true
+        },
+        {
+          "scenario": "Job switch",
+          "query": "Where did I work before?",
+          "answer": "You worked at ByteDance as a senior engineer.",
+          "ok": true
+        },
+        {
+          "scenario": "Allergy correction",
+          "query": "What am I allergic to?",
+          "answer": "You are allergic to shellfish.",
+          "ok": true
+        },
+        {
+          "scenario": "Allergy correction",
+          "query": "What did I previously think I was allergic to?",
+          "answer": "Peanuts.",
+          "ok": true
+        },
+        {
+          "scenario": "Team size change",
+          "query": "How many team members now?",
+          "answer": "5",
+          "ok": true
+        },
+        {
+          "scenario": "Team size change",
+          "query": "How many before the growth?",
+          "answer": "I don't have any relevant information to answer that question.",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "competency": "LRU",
+      "accuracy": 88.9,
+      "details": [
+        {
+          "query": "Who leads NeuroMem?",
+          "answer": "Dr. Sarah Johnson leads the NeuroMem project.",
+          "ok": true
+        },
+        {
+          "query": "When did NeuroMem start?",
+          "answer": "NeuroMem started on January 15, 2024.",
+          "ok": true
+        },
+        {
+          "query": "How many researchers?",
+          "answer": "Unable to answer from project records.",
+          "ok": false
+        },
+        {
+          "query": "What happened in March 2024?",
+          "answer": "In March 2024, the NeuroMem prototype was completed.",
+          "ok": true
+        },
+        {
+          "query": "What was the June 2024 milestone?",
+          "answer": "Based on the stored memories, the June 2024 milestone was the NeuroMem alpha release, which supports 10K nodes.",
+          "ok": true
+        },
+        {
+          "query": "What is the total budget?",
+          "answer": "2.5 million USD",
+          "ok": true
+        },
+        {
+          "query": "Where was NeuroMem presented?",
+          "answer": "NeuroMem was presented at the NeurIPS 2024 workshop on Agent Memory.",
+          "ok": true
+        },
+        {
+          "query": "When was v1.0 released?",
+          "answer": "January 2025.",
+          "ok": true
+        },
+        {
+          "query": "How many GitHub stars?",
+          "answer": "500+",
+          "ok": true
+        }
+      ]
+    }
+  ]
+}

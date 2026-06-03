@@ -145,6 +145,10 @@ class NumpyVectorStore(VectorStore):
             return 0
         return self._vectors.shape[0]
 
+    def is_semantic(self) -> bool:
+        """Hash-based vectors are NOT semantically meaningful."""
+        return False
+
     # ── Utility ──────────────────────────────────────────────────────────
 
     @staticmethod

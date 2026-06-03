@@ -1,0 +1,475 @@
+{
+  "summary": {
+    "overall": 18.8,
+    "questions": 85,
+    "correct": 16,
+    "nodes": 320,
+    "llm_calls": 402,
+    "tokens": 141952
+  },
+  "competencies": [
+    {
+      "c": "AR",
+      "acc": 8.0,
+      "details": [
+        {
+          "q": "What is Bob's job?",
+          "a": "I don't have any information about Bob's job in the provided memories. The memories only contain two email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Alice's job?",
+          "a": "Based on the provided memories, there is no information about Alice's job. The memories only contain email addresses.",
+          "ok": false
+        },
+        {
+          "q": "What is Bob's job?",
+          "a": "I don't have any information about Bob's job in the provided memories. The memories only contain two email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Alice's pet?",
+          "a": "I don't have any information about Alice's pet in the provided memories. The memories only contain email addresses for A",
+          "ok": false
+        },
+        {
+          "q": "What is Alice's job?",
+          "a": "Based on the provided memories, there is no information about Alice's job. The memories only contain email addresses.",
+          "ok": false
+        },
+        {
+          "q": "What is Henry's email?",
+          "a": "Based on the available memories, Henry's current email is henry95@example.com. The other entries are marked as stale.",
+          "ok": false
+        },
+        {
+          "q": "What is Henry's pet?",
+          "a": "I don't have any information about Henry's pet in the provided memories. The memories only contain email addresses for H",
+          "ok": false
+        },
+        {
+          "q": "What is Bob's job?",
+          "a": "I don't have any information about Bob's job in the provided memories. The memories only contain two email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Eve's email?",
+          "a": "Eve's current email is eve60@example.com.",
+          "ok": true
+        },
+        {
+          "q": "What is Diana's pet?",
+          "a": "I don't have any information about Diana's pet in the provided memories. The memories only contain email addresses for D",
+          "ok": false
+        },
+        {
+          "q": "What is Alice's pet?",
+          "a": "I don't have any information about Alice's pet in the provided memories. The memories only contain email addresses for A",
+          "ok": false
+        },
+        {
+          "q": "What is Charlie's city?",
+          "a": "I don't have any information about Charlie's city in the provided memories. The memories only contain email addresses fo",
+          "ok": false
+        },
+        {
+          "q": "What is Eve's job?",
+          "a": "I don't have any information about Eve's job in the provided memories. The memories only contain email addresses for Eve",
+          "ok": false
+        },
+        {
+          "q": "What is Grace's job?",
+          "a": "I don't have any information about Grace's job in the provided memories. The memories only contain two email addresses f",
+          "ok": false
+        },
+        {
+          "q": "What is Diana's pet?",
+          "a": "I don't have any information about Diana's pet in the provided memories. The memories only contain email addresses for D",
+          "ok": false
+        },
+        {
+          "q": "What is Bob's hobby?",
+          "a": "I don't have any memory of Bob's hobby. The memories I have only contain email addresses for Bob, not his hobbies.",
+          "ok": false
+        },
+        {
+          "q": "What is Henry's email?",
+          "a": "Based on the available memories, Henry's current email is henry95@example.com. The other entries are marked as stale.",
+          "ok": false
+        },
+        {
+          "q": "What is Frank's job?",
+          "a": "I don't have any information about Frank's job in the provided memories. The memories only contain email addresses for F",
+          "ok": false
+        },
+        {
+          "q": "What is Alice's email?",
+          "a": "Alice's current email is alice80@example.com.",
+          "ok": false
+        },
+        {
+          "q": "What is Eve's job?",
+          "a": "I don't have any information about Eve's job in the provided memories. The memories only contain email addresses for Eve",
+          "ok": false
+        },
+        {
+          "q": "What is Charlie's hobby?",
+          "a": "I don't have any information about Charlie's hobby in the provided memories. The memories only contain email addresses f",
+          "ok": false
+        },
+        {
+          "q": "What is Frank's hobby?",
+          "a": "I don't have any information about Frank's hobby in the provided memories. The memories only contain email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Diana's email?",
+          "a": "Diana's email is diana75@example.com.",
+          "ok": true
+        },
+        {
+          "q": "What is Frank's pet?",
+          "a": "I don't have any information about Frank's pet in the provided memories. The memories only contain email addresses for F",
+          "ok": false
+        },
+        {
+          "q": "What is Alice's email?",
+          "a": "Alice's current email is alice80@example.com.",
+          "ok": false
+        },
+        {
+          "q": "What is Frank's email?",
+          "a": "Frank's email is frank85@example.com.",
+          "ok": true
+        },
+        {
+          "q": "What is Charlie's job?",
+          "a": "I don't have any information about Charlie's job in the provided memories. The memories only contain email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Charlie's hobby?",
+          "a": "I don't have any information about Charlie's hobby in the provided memories. The memories only contain email addresses f",
+          "ok": false
+        },
+        {
+          "q": "What is Frank's hobby?",
+          "a": "I don't have any information about Frank's hobby in the provided memories. The memories only contain email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Bob's city?",
+          "a": "I don't have any memory of Bob's city. The memories I have only contain email addresses for Bob, not his city.",
+          "ok": false
+        },
+        {
+          "q": "What is Bob's hobby?",
+          "a": "I don't have any memory of Bob's hobby. The memories I have only contain email addresses for Bob, not his hobbies.",
+          "ok": false
+        },
+        {
+          "q": "What is Diana's job?",
+          "a": "I don't have any information about Diana's job in the provided memories. The memories only contain email addresses for D",
+          "ok": false
+        },
+        {
+          "q": "What is Grace's hobby?",
+          "a": "I don't have any memory of Grace's hobby. The memories I have only contain information about her email addresses.",
+          "ok": false
+        },
+        {
+          "q": "What is Charlie's pet?",
+          "a": "I don't have any information about Charlie's pet in the provided memories. The memories only contain email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Eve's pet?",
+          "a": "I don't have any information about Eve's pet in the provided memories. The memories only contain email addresses for Eve",
+          "ok": false
+        },
+        {
+          "q": "What is Alice's city?",
+          "a": "Based on the provided memories, there is no information about Alice's city. The memories only contain email addresses. T",
+          "ok": false
+        },
+        {
+          "q": "What is Frank's pet?",
+          "a": "I don't have any information about Frank's pet in the provided memories. The memories only contain email addresses for F",
+          "ok": false
+        },
+        {
+          "q": "What is Diana's email?",
+          "a": "Diana's email is diana75@example.com.",
+          "ok": false
+        },
+        {
+          "q": "What is Grace's hobby?",
+          "a": "I don't have any memory of Grace's hobby. The memories I have only contain information about her email addresses.",
+          "ok": false
+        },
+        {
+          "q": "What is Grace's job?",
+          "a": "I don't have any information about Grace's job in the provided memories. The memories only contain two email addresses f",
+          "ok": false
+        },
+        {
+          "q": "What is Frank's city?",
+          "a": "I don't have any information about Frank's city in the provided memories. The memories only contain email addresses for ",
+          "ok": false
+        },
+        {
+          "q": "What is Diana's pet?",
+          "a": "I don't have any information about Diana's pet in the provided memories. The memories only contain email addresses for D",
+          "ok": false
+        },
+        {
+          "q": "What is Diana's hobby?",
+          "a": "I don't have any information about Diana's hobby in the provided memories. The memories only contain email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Henry's city?",
+          "a": "I don't have any information about Henry's city in the provided memories. The memories only contain email addresses for ",
+          "ok": false
+        },
+        {
+          "q": "What is Grace's pet?",
+          "a": "I don't have any information about Grace's pet in the provided memories. The memories only contain email addresses for G",
+          "ok": false
+        },
+        {
+          "q": "What is Charlie's pet?",
+          "a": "I don't have any information about Charlie's pet in the provided memories. The memories only contain email addresses for",
+          "ok": false
+        },
+        {
+          "q": "What is Grace's email?",
+          "a": "Based on the available memories, Grace's email is grace70@example.com. The other record ([email_30]) is marked as stale,",
+          "ok": true
+        },
+        {
+          "q": "What is Alice's pet?",
+          "a": "I don't have any information about Alice's pet in the provided memories. The memories only contain email addresses for A",
+          "ok": false
+        },
+        {
+          "q": "What is Grace's city?",
+          "a": "I don't have any information about Grace's city in the provided memories. The memories only contain email addresses for ",
+          "ok": false
+        },
+        {
+          "q": "What is Bob's city?",
+          "a": "I don't have any memory of Bob's city. The memories I have only contain email addresses for Bob, not his city.",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "c": "SF",
+      "acc": 10.0,
+      "details": [
+        {
+          "scenario": "Location",
+          "q": "What is my location now?",
+          "a": "Based on the memories provided, your current location is **Location_v2**, as new facts replace old ones.",
+          "ok": false
+        },
+        {
+          "scenario": "Location",
+          "q": "What was my location before?",
+          "a": "Based on the memories provided, your location before the most recent update was **Location_v1**.",
+          "ok": false
+        },
+        {
+          "scenario": "Job",
+          "q": "What is my job now?",
+          "a": "Based on the memories, your current job is **Job_v2**. The previous record (Job_v1) is marked as stale and has been repl",
+          "ok": false
+        },
+        {
+          "scenario": "Job",
+          "q": "What was my job before?",
+          "a": "Based on the memories provided, your job before was **Job_v1**.",
+          "ok": false
+        },
+        {
+          "scenario": "Allergy",
+          "q": "What is my allergy now?",
+          "a": "Based on the memories provided, your current allergy is **Allergy_v2**. The previous record (Allergy_v1) has been marked",
+          "ok": false
+        },
+        {
+          "scenario": "Allergy",
+          "q": "What was my allergy before?",
+          "a": "Based on the memories provided, your previous allergy was **Allergy_v1**. However, this information has been marked as s",
+          "ok": false
+        },
+        {
+          "scenario": "Team",
+          "q": "What is my team now?",
+          "a": "Based on the memories, your team is **Team_v2**.",
+          "ok": false
+        },
+        {
+          "scenario": "Team",
+          "q": "What was my team before?",
+          "a": "Based on the memories, your team before was **Team_v1**.",
+          "ok": false
+        },
+        {
+          "scenario": "City",
+          "q": "What is my city now?",
+          "a": "Based on the memories provided, your city is **City_v2**. (New facts replace old ones, so City_v2 overrides City_v1.)",
+          "ok": false
+        },
+        {
+          "scenario": "City",
+          "q": "What was my city before?",
+          "a": "Based on the memories provided, your city before was **City_v1**.",
+          "ok": false
+        },
+        {
+          "scenario": "Role",
+          "q": "What is my role now?",
+          "a": "Based on the memories provided, your current role is **Role_v2**.",
+          "ok": false
+        },
+        {
+          "scenario": "Role",
+          "q": "What was my role before?",
+          "a": "Based on the memories provided, your role before was **Role_v1**.",
+          "ok": false
+        },
+        {
+          "scenario": "Car",
+          "q": "What is my car now?",
+          "a": "Based on the memories provided, you have two cars: Car_v1 and Car_v2. Since no new fact has replaced the old ones, your ",
+          "ok": true
+        },
+        {
+          "scenario": "Car",
+          "q": "What was my car before?",
+          "a": "Based on the memories provided, your car before was **Car_v1**.",
+          "ok": true
+        },
+        {
+          "scenario": "Phone",
+          "q": "What is my phone now?",
+          "a": "Based on the memories, your current phone is **Phone_v2**. The previous one, Phone_v1, is marked as stale and has been r",
+          "ok": false
+        },
+        {
+          "scenario": "Phone",
+          "q": "What was my phone before?",
+          "a": "Based on the memories, your phone before was Phone_v1.",
+          "ok": false
+        },
+        {
+          "scenario": "Framework",
+          "q": "What is my framework now?",
+          "a": "Based on your memories, the current framework is **Framework_v2**, as it replaces the old Framework_v1.",
+          "ok": false
+        },
+        {
+          "scenario": "Framework",
+          "q": "What was my framework before?",
+          "a": "Based on your memories, your framework before was **Framework_v1**.",
+          "ok": false
+        },
+        {
+          "scenario": "Language",
+          "q": "What is my language now?",
+          "a": "Based on the memories provided, your language is **Language_v2**.",
+          "ok": false
+        },
+        {
+          "scenario": "Language",
+          "q": "What was my language before?",
+          "a": "Based on the memories provided, your language before was **Language_v1**.",
+          "ok": false
+        }
+      ]
+    },
+    {
+      "c": "LRU",
+      "acc": 66.7,
+      "details": [
+        {
+          "q": "Who leads Project Mercury?",
+          "a": "Based on the memories provided, Dr. Alice Chen leads Project Mercury.",
+          "ok": true
+        },
+        {
+          "q": "When did Mercury start?",
+          "a": "Based on the provided memories, Mercury started on **day 0** (Mercury day 0).",
+          "ok": false
+        },
+        {
+          "q": "Initial team size?",
+          "a": "Based on the memories provided, the initial team size for the Mercury team was **2 researchers**.",
+          "ok": false
+        },
+        {
+          "q": "What was the April 2024 milestone?",
+          "a": "Based on the memories provided, the April 2024 milestone was the completion of the **Mercury prototype**.",
+          "ok": true
+        },
+        {
+          "q": "What was the July 2024 milestone?",
+          "a": "Based on the memories provided, the July 2024 milestone was the **Mercury alpha**, which achieved **50K nodes**.",
+          "ok": true
+        },
+        {
+          "q": "Total budget?",
+          "a": "I need more context to provide the total budget. Could you please specify which project or budget you are referring to? ",
+          "ok": false
+        },
+        {
+          "q": "Where was Mercury presented?",
+          "a": "Based on the provided memories, there is no information about where Project Mercury was presented. The memories only con",
+          "ok": false
+        },
+        {
+          "q": "When was v1.0 released?",
+          "a": "Based on the memory provided, Mercury v1.0 was released in January 2025.",
+          "ok": true
+        },
+        {
+          "q": "GitHub stars?",
+          "a": "Based on the memory provided, Mercury has **1,200 GitHub stars**.",
+          "ok": false
+        },
+        {
+          "q": "When did Mercury win Best Paper?",
+          "a": "Based on the memories provided, Mercury won Best Paper at ACL 2025.",
+          "ok": true
+        },
+        {
+          "q": "Series A amount?",
+          "a": "Based on the memory provided, the Series A amount for Mercury is **10 million**.",
+          "ok": true
+        },
+        {
+          "q": "Current team size?",
+          "a": "Based on the memories provided, the most recent information indicates that the Mercury team expanded to 20 members. The ",
+          "ok": true
+        },
+        {
+          "q": "March 2025 milestone?",
+          "a": "Based on the memories provided, the milestone for March 2025 is **Mercury v2.0 planning**.",
+          "ok": true
+        },
+        {
+          "q": "June 2025 milestone?",
+          "a": "Based on the memories provided, the milestone for June 2025 is: **Mercury v2.0 alpha**.",
+          "ok": true
+        },
+        {
+          "q": "Production users?",
+          "a": "Based on the memory provided, Mercury has **3 production users**.",
+          "ok": true
+        }
+      ]
+    }
+  ]
+}

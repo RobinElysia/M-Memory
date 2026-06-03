@@ -11,12 +11,19 @@
 class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
     def __init__(self, config, vector_store, graph_store, llm):
         ...
-        self._bucket_manager = BucketManagerImpl(...)  # 引擎拥有桶管理器
-        self._nodes: dict[str, MemoryNode] = {}         # 节点注册表
+        self._bucket_manager = BucketManagerImpl(...)
+        self._nodes: dict[str, MemoryNode] = {}
+        self._write_lock = threading.Lock()  # v0.2.0: 线程安全
 ```
 
-**设计要点**：BucketManager 由引擎内部创建（组合而非注入），
-因为桶的创建/分配逻辑与检索强耦合，不应由外部控制。
+**设计要点**：BucketManager 由引擎内部创建（组合而非注入）。
+v0.2.0 添加 `_write_lock`：`ingest()` 持有写锁，`search()` 无锁并发读取。
+
+## 词汇回退 stale 检测 (v0.2.0)
+
+`_lexical_search()` 新增轻量级 stale 检测（无 LLM 调用）：
+对于评分均 > 1.0 的节点对，若共享 topic 关键词（如 "live", "work", "allergy"）
+但内容不同，自动标记旧节点为 stale 并降权。无需额外 API 调用。
 
 ---
 
