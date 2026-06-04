@@ -17,6 +17,7 @@ from numpy.typing import NDArray
 from memory_system.config import MemorySystemConfig
 from memory_system.interfaces import BucketManager, EdgeType, GraphStore, LLMAdapter, VectorStore
 from memory_system.models import Bucket, Medoid, MemoryNode
+from memory_system.utils import STOPWORDS, cosine_sim
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ class BucketManagerImpl(BucketManager):
         for bucket in active:
             if bucket.medoid is None:
                 continue
-            sim = self._cosine_sim(
+            sim = cosine_sim(
                 node_a.summary_vector, bucket.medoid.vector
             )
             scored.append((bucket, sim))
@@ -132,7 +133,7 @@ class BucketManagerImpl(BucketManager):
         # Remove very common words
         stop = {"the","a","an","is","are","was","were","in","on","at","to",
                 "of","for","with","and","or","i","my","me","you","your","it"}
-        node_words -= stop
+        node_words -= STOPWORDS
 
         if not node_words:
             return active[: self._config.bucket.top_k]
@@ -232,7 +233,7 @@ class BucketManagerImpl(BucketManager):
         sim_matrix = np.zeros((n, n), dtype=np.float32)
         for i in range(n):
             for j in range(i + 1, n):
-                sim = self._cosine_sim(nodes[i].summary_vector, nodes[j].summary_vector)
+                sim = cosine_sim(nodes[i].summary_vector, nodes[j].summary_vector)
                 sim_matrix[i, j] = sim
                 sim_matrix[j, i] = sim
             sim_matrix[i, i] = 1.0
@@ -272,7 +273,12 @@ class BucketManagerImpl(BucketManager):
                 node = self._nodes.get(nid)
                 if node:
                     node.bucket_id = new_b.id
-                    self._graph_store.add_node(nid, {"type": "memory_node"})
+                    try:
+                        self._graph_store.add_node(nid, {"type": "memory_node"})
+                    except ValueError:
+                        self._graph_store.update_node_attrs(
+                            nid, {"type": "memory_node", "bucket_id": new_b.id}
+                        )
             # Compute Medoid
             self._update_medoid(new_b)
             # Register Medoid vector
@@ -386,7 +392,7 @@ class BucketManagerImpl(BucketManager):
                 if other is None:
                     continue
                 # Cosine distance = 1 - cosine similarity
-                sim = self._cosine_sim(node.summary_vector, other.summary_vector)
+                sim = cosine_sim(node.summary_vector, other.summary_vector)
                 total_dist += 1.0 - sim
                 count += 1
 

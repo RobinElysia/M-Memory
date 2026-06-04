@@ -1,6 +1,6 @@
 [project]
 name = "m-memory"
-version = "0.2.0"
+version = "0.3.0"
 description = "A dual-layer memory system for AI agents with incremental clustering, graph-based retrieval, and conflict resolution."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,9 +17,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "pydantic>=2.0", # 数据模型
     "numpy>=1.24", # 向量运算
-    "faiss-cpu>=1.7", # 默认向量存储后端
     "openai>=1.0", # LLM 适配（可按需替换）
     "structlog>=23.0", # 结构化日志
     "networkx>=3.0", # 图存储与游走

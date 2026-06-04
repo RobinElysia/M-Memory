@@ -16,7 +16,7 @@ from memory_system.fake_llm import (
 from memory_system.graph_engine import NetworkXGraphStore
 from memory_system.models import MemoryNode
 from memory_system.retrieval import MemoryRetrievalEngineImpl
-from memory_system.vector_store import NumpyVectorStore
+from memory_system.vector_store import HashVectorStore
 
 
 class TestRetrievalEngine:
@@ -29,8 +29,8 @@ class TestRetrievalEngine:
         return c
 
     @pytest.fixture
-    def vector_store(self, config: MemorySystemConfig) -> NumpyVectorStore:
-        return NumpyVectorStore(dim=config.embedding_dim)
+    def vector_store(self, config: MemorySystemConfig) -> HashVectorStore:
+        return HashVectorStore(dim=config.embedding_dim)
 
     @pytest.fixture
     def graph_store(self) -> NetworkXGraphStore:
@@ -44,7 +44,7 @@ class TestRetrievalEngine:
     def engine(
         self,
         config: MemorySystemConfig,
-        vector_store: NumpyVectorStore,
+        vector_store: HashVectorStore,
         graph_store: NetworkXGraphStore,
         llm: FakeLLMAdapter,
     ) -> MemoryRetrievalEngineImpl:

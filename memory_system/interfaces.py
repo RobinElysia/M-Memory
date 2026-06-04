@@ -211,6 +211,19 @@ class GraphStore(ABC):
         ...
 
     @abstractmethod
+    def update_node_attrs(self, node_id: str, attributes: dict[str, Any]) -> None:
+        """Update attributes of an existing vertex without recreating it.
+
+        Args:
+            node_id: Existing vertex ID.
+            attributes: Key-value pairs to merge into node attributes.
+
+        Raises:
+            KeyError: If *node_id* does not exist.
+        """
+        ...
+
+    @abstractmethod
     def add_edge(
         self,
         from_id: str,

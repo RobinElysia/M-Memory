@@ -12,7 +12,7 @@ from memory_system.config import MemorySystemConfig
 from memory_system.fake_llm import FakeLLMAdapter, create_assignment_decision
 from memory_system.graph_engine import NetworkXGraphStore
 from memory_system.models import Bucket, MemoryNode
-from memory_system.vector_store import NumpyVectorStore
+from memory_system.vector_store import HashVectorStore
 
 
 class TestBucketManager:
@@ -25,8 +25,8 @@ class TestBucketManager:
         return c
 
     @pytest.fixture
-    def vector_store(self, config: MemorySystemConfig) -> NumpyVectorStore:
-        return NumpyVectorStore(dim=config.embedding_dim)
+    def vector_store(self, config: MemorySystemConfig) -> HashVectorStore:
+        return HashVectorStore(dim=config.embedding_dim)
 
     @pytest.fixture
     def graph_store(self) -> NetworkXGraphStore:
@@ -40,7 +40,7 @@ class TestBucketManager:
     def manager(
         self,
         config: MemorySystemConfig,
-        vector_store: NumpyVectorStore,
+        vector_store: HashVectorStore,
         graph_store: NetworkXGraphStore,
         llm: FakeLLMAdapter,
     ) -> BucketManagerImpl:
@@ -60,7 +60,7 @@ class TestBucketManager:
     ) -> MemoryNode:
         dim = config.embedding_dim if config else 8
         # Use a simple hash-based embedding for tests
-        vs = NumpyVectorStore(dim=dim)
+        vs = HashVectorStore(dim=dim)
         return MemoryNode(
             id=node_id,
             summary=summary,

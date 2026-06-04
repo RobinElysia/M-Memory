@@ -156,6 +156,13 @@ class MemorySystemConfig:
     Must be consistent across the VectorStore implementation.
     """
 
+    # ── Lexical Search ──────────────────────────────────────────────────
+    topic_words: set[str] | None = None
+    """Topic keywords for lightweight stale detection (lexical fallback).
+    When None, a built-in default set is used. Override for non-English
+    domains or specific vocabulary.
+    """
+
     # ── Logging ─────────────────────────────────────────────────────────
     log_level: str = "INFO"
     """Structured logging level. LLM calls, bucket assignments, and cleanup

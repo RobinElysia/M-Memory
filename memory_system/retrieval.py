@@ -12,9 +12,6 @@ import time
 import uuid
 from typing import Any
 
-import numpy as np
-from numpy.typing import NDArray
-
 from memory_system.bucket_manager import BucketManagerImpl
 from memory_system.config import MemorySystemConfig
 from memory_system.interfaces import (
@@ -34,6 +31,8 @@ from memory_system.models import (
     MemoryNode,
     SearchResult,
 )
+from memory_system.persistence import PersistenceStore  # noqa: TC001
+from memory_system.utils import STOPWORDS, cosine_sim
 
 logger = logging.getLogger(__name__)
 
@@ -51,11 +50,21 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         vector_store: VectorStore,
         graph_store: GraphStore,
         llm: LLMAdapter,
+        persistence: PersistenceStore | None = None,
     ) -> None:
         self._config = config
         self._vector_store = vector_store
         self._graph_store = graph_store
         self._llm = llm
+        self._persistence = persistence
+
+        # Dimension validation — prevent silent crashes from config mismatch
+        if config.embedding_dim != vector_store.dim:
+            raise ValueError(
+                f"Config embedding_dim ({config.embedding_dim}) != "
+                f"vector_store.dim ({vector_store.dim}). "
+                f"Set config.embedding_dim = {vector_store.dim} to match."
+            )
 
         # BucketManager is composed, not injected — the engine owns it
         self._bucket_manager = BucketManagerImpl(
@@ -158,6 +167,11 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
             )
 
         logger.info("Ingested node %s into bucket %s: %s", node.id, bucket.id, summary[:80])
+
+        if self._persistence is not None:
+            self._persistence.save_node(node)
+            self._persistence.save_bucket(bucket)
+
         return node.id
 
     def search(
@@ -199,7 +213,7 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         dormant_buckets = [b for b in all_buckets if b.is_dormant]
         for db in dormant_buckets:
             if db.medoid is not None:
-                sim = self._cosine_sim(query_vector, db.medoid.vector)
+                sim = cosine_sim(query_vector, db.medoid.vector)
                 if sim > 0.5:
                     self._bucket_manager.wake_bucket(db.id)
                     active_buckets.append(db)
@@ -211,7 +225,7 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         for bucket in active_buckets:
             if bucket.medoid is None:
                 continue
-            sim = self._cosine_sim(query_vector, bucket.medoid.vector)
+            sim = cosine_sim(query_vector, bucket.medoid.vector)
             bucket_scores.append((bucket, sim))
 
         bucket_scores.sort(key=lambda x: x[1], reverse=True)
@@ -228,7 +242,7 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
                 node = self._nodes.get(node_id)
                 if node is None:
                     continue
-                sim = self._cosine_sim(query_vector, node.summary_vector)
+                sim = cosine_sim(query_vector, node.summary_vector)
                 seed_nodes.append((node, sim))
 
         seed_nodes.sort(key=lambda x: x[1], reverse=True)
@@ -271,13 +285,7 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         Includes lightweight stale detection for contradiction pairs.
         """
         query_lower = query.lower()
-        stopwords = {
-            "the", "a", "an", "is", "are", "was", "were", "do", "does", "did",
-            "in", "on", "at", "to", "of", "for", "with", "what", "how", "when",
-            "where", "who", "why", "about", "i", "my", "me", "you", "your",
-            "now", "before", "after", "and", "or", "not", "be", "has", "have",
-            "it", "its", "that", "this", "these", "those", "from", "by",
-        }
+        stopwords = STOPWORDS
         keywords = [w for w in query_lower.split() if w not in stopwords]
         if not keywords:
             return SearchResult(nodes=[], scores=[])
@@ -326,19 +334,24 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
             scored = global_results
 
         # Step 3: Lightweight stale detection — expanded topic words
+        _default_topic_words = {
+            "live", "lives", "living", "moved", "move", "relocated",
+            "work", "works", "working", "job", "position", "role",
+            "allergy", "allergic", "allergies",
+            "team", "member", "members",
+            "address", "location", "city", "country",
+            "name", "email", "phone", "number",
+            "drive", "driving", "car", "vehicle",
+            "use", "using", "framework", "language", "speak",
+            "have", "has", "own", "owns", "pet", "dog", "cat",
+            "graduated", "graduate", "university", "college",
+        }
+        topic_words = (
+            self._config.topic_words
+            if self._config.topic_words is not None
+            else _default_topic_words
+        )
         if len(scored) >= 2:
-            topic_words = {
-                "live", "lives", "living", "moved", "move", "relocated",
-                "work", "works", "working", "job", "position", "role",
-                "allergy", "allergic", "allergies",
-                "team", "member", "members",
-                "address", "location", "city", "country",
-                "name", "email", "phone", "number",
-                "drive", "driving", "car", "vehicle",
-                "use", "using", "framework", "language", "speak",
-                "have", "has", "own", "owns", "pet", "dog", "cat",
-                "graduated", "graduate", "university", "college",
-            }
             for i in range(len(scored)):
                 for j in range(i + 1, len(scored)):
                     na, sa = scored[i]
@@ -391,7 +404,7 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
 
         scored: list[tuple[MemoryNode, float]] = []
         for node in candidates:
-            sim = self._cosine_sim(node.content_vector, query_vector)
+            sim = cosine_sim(node.content_vector, query_vector)
             delta_t_days = (now - node.timestamp) / 86400.0
             time_factor = 1.0 / (1.0 + delta_t_days)
             confidence = node.confidence
@@ -459,12 +472,3 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
 
     # ── Helpers ──────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _cosine_sim(
-        a: NDArray[np.float32], b: NDArray[np.float32]
-    ) -> float:
-        a_norm = np.linalg.norm(a)
-        b_norm = np.linalg.norm(b)
-        if a_norm < 1e-8 or b_norm < 1e-8:
-            return 0.0
-        return float(np.dot(a, b) / (a_norm * b_norm))

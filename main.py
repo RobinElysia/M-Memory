@@ -1,6 +1,6 @@
-def main():
-    print("Hello from m-memory!")
+"""Entry point — delegates to CLI module."""
 
+from memory_system.cli import main
 
 if __name__ == "__main__":
     main()

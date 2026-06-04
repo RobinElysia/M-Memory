@@ -4,4 +4,4 @@ Layer 1 (coarse): Incremental clustering with LLM-driven bucket assignment + gra
 Layer 2 (fine): Semantic retrieval with conflict resolution and temporal re-ranking.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"

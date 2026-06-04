@@ -34,6 +34,12 @@ class NetworkXGraphStore(GraphStore):
             raise ValueError(f"Node '{node_id}' already exists")
         self._graph.add_node(node_id, **attributes)
 
+    def update_node_attrs(self, node_id: str, attributes: dict[str, Any]) -> None:
+        """Update attributes of an existing vertex."""
+        if not self._graph.has_node(node_id):
+            raise KeyError(f"Node '{node_id}' does not exist")
+        self._graph.nodes[node_id].update(attributes)
+
     def add_edge(
         self,
         from_id: str,

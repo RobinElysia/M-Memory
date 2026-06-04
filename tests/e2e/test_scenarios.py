@@ -23,7 +23,7 @@ from memory_system.fake_llm import (
 from memory_system.graph_engine import NetworkXGraphStore
 from memory_system.models import MemoryNode
 from memory_system.retrieval import MemoryRetrievalEngineImpl
-from memory_system.vector_store import NumpyVectorStore
+from memory_system.vector_store import HashVectorStore
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -50,8 +50,8 @@ class TestTopicDriftAndBucketSplit:
         return _make_config()
 
     @pytest.fixture
-    def vs(self, config: MemorySystemConfig) -> NumpyVectorStore:
-        return NumpyVectorStore(dim=config.embedding_dim)
+    def vs(self, config: MemorySystemConfig) -> HashVectorStore:
+        return HashVectorStore(dim=config.embedding_dim)
 
     @pytest.fixture
     def gs(self) -> NetworkXGraphStore:
@@ -65,7 +65,7 @@ class TestTopicDriftAndBucketSplit:
     def engine(
         self,
         config: MemorySystemConfig,
-        vs: NumpyVectorStore,
+        vs: HashVectorStore,
         gs: NetworkXGraphStore,
         llm: FakeLLMAdapter,
     ) -> MemoryRetrievalEngineImpl:
@@ -161,8 +161,8 @@ class TestConflictResolution:
         return _make_config()
 
     @pytest.fixture
-    def vs(self, config: MemorySystemConfig) -> NumpyVectorStore:
-        return NumpyVectorStore(dim=config.embedding_dim)
+    def vs(self, config: MemorySystemConfig) -> HashVectorStore:
+        return HashVectorStore(dim=config.embedding_dim)
 
     @pytest.fixture
     def gs(self) -> NetworkXGraphStore:
@@ -176,7 +176,7 @@ class TestConflictResolution:
     def engine(
         self,
         config: MemorySystemConfig,
-        vs: NumpyVectorStore,
+        vs: HashVectorStore,
         gs: NetworkXGraphStore,
         llm: FakeLLMAdapter,
     ) -> MemoryRetrievalEngineImpl:
@@ -257,8 +257,8 @@ class TestBucketDormancy:
         return c
 
     @pytest.fixture
-    def vs(self, config: MemorySystemConfig) -> NumpyVectorStore:
-        return NumpyVectorStore(dim=config.embedding_dim)
+    def vs(self, config: MemorySystemConfig) -> HashVectorStore:
+        return HashVectorStore(dim=config.embedding_dim)
 
     @pytest.fixture
     def gs(self) -> NetworkXGraphStore:
@@ -272,7 +272,7 @@ class TestBucketDormancy:
     def engine(
         self,
         config: MemorySystemConfig,
-        vs: NumpyVectorStore,
+        vs: HashVectorStore,
         gs: NetworkXGraphStore,
         llm: FakeLLMAdapter,
     ) -> MemoryRetrievalEngineImpl:

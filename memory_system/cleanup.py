@@ -12,9 +12,6 @@ import logging
 import threading
 import time
 
-import numpy as np
-from numpy.typing import NDArray
-
 from memory_system.config import MemorySystemConfig
 from memory_system.interfaces import BucketManager, LLMAdapter, VectorStore
 from memory_system.llm_decision import (
@@ -22,6 +19,7 @@ from memory_system.llm_decision import (
     parse_conflict_detection_response,
 )
 from memory_system.models import Bucket, MemoryNode
+from memory_system.utils import cosine_sim
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +137,7 @@ class CleanupScheduler:
                     continue
 
                 # Check content-vector similarity
-                sim = self._cosine_sim(
+                sim = cosine_sim(
                     node_a.content_vector, node_b.content_vector
                 )
                 if sim < similarity_threshold:
@@ -185,7 +183,7 @@ class CleanupScheduler:
             if node is None:
                 continue
 
-            sim = self._cosine_sim(node.content_vector, bucket.medoid.vector)
+            sim = cosine_sim(node.content_vector, bucket.medoid.vector)
             if sim < floor:
                 # Mark as stale (soft removal — node stays but is downgraded)
                 node.is_stale = True
@@ -196,13 +194,3 @@ class CleanupScheduler:
                     bucket.id,
                 )
 
-    @staticmethod
-    def _cosine_sim(
-        a: NDArray[np.float32],
-        b: NDArray[np.float32],
-    ) -> float:
-        a_norm = np.linalg.norm(a)
-        b_norm = np.linalg.norm(b)
-        if a_norm < 1e-8 or b_norm < 1e-8:
-            return 0.0
-        return float(np.dot(a, b) / (a_norm * b_norm))
