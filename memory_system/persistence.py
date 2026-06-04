@@ -1,7 +1,7 @@
-"""SQLite-based persistence for nodes and buckets.
+"""SQLite-based persistence for nodes and buckets with vector support.
 
 Provides save/load/delete for MemoryNode and Bucket state.
-Engine can optionally inject a PersistenceStore for durability.
+Engine injects PersistenceStore for durability; load_all_* called on init.
 """
 
 from __future__ import annotations
@@ -9,6 +9,8 @@ from __future__ import annotations
 import logging
 import sqlite3
 from typing import Any
+
+import numpy as np
 
 from memory_system.models import Bucket, MemoryNode
 
@@ -19,6 +21,8 @@ CREATE TABLE IF NOT EXISTS nodes (
     id TEXT PRIMARY KEY,
     summary TEXT NOT NULL,
     content TEXT NOT NULL,
+    summary_vector BLOB,
+    content_vector BLOB,
     bucket_id TEXT,
     timestamp REAL NOT NULL,
     confidence REAL NOT NULL DEFAULT 1.0,
@@ -39,8 +43,16 @@ CREATE INDEX IF NOT EXISTS idx_nodes_stale ON nodes(is_stale);
 """
 
 
+def _vector_to_blob(vec: np.ndarray) -> bytes:
+    return vec.astype(np.float32).tobytes()
+
+
+def _blob_to_vector(blob: bytes, dim: int) -> np.ndarray:
+    return np.frombuffer(blob, dtype=np.float32).reshape(dim)
+
+
 class PersistenceStore:
-    """SQLite-backed persistence for m-memory state."""
+    """SQLite-backed persistence for m-memory state with vector storage."""
 
     def __init__(self, db_path: str = ":memory:") -> None:
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
@@ -49,11 +61,13 @@ class PersistenceStore:
         self._conn.commit()
 
     def save_node(self, node: MemoryNode) -> None:
+        sv = _vector_to_blob(node.summary_vector) if node.summary_vector is not None else None
+        cv = _vector_to_blob(node.content_vector) if node.content_vector is not None else None
         self._conn.execute(
-            "INSERT OR REPLACE INTO nodes VALUES (?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO nodes VALUES (?,?,?,?,?,?,?,?,?)",
             (
-                node.id, node.summary, node.content, node.bucket_id,
-                node.timestamp, node.confidence, int(node.is_stale),
+                node.id, node.summary, node.content, sv, cv,
+                node.bucket_id, node.timestamp, node.confidence, int(node.is_stale),
             ),
         )
         self._conn.commit()
@@ -77,15 +91,18 @@ class PersistenceStore:
         self._conn.execute("DELETE FROM buckets WHERE id=?", (bucket_id,))
         self._conn.commit()
 
-    def load_all_nodes(self) -> list[dict[str, Any]]:
+    def load_all_nodes(self, dim: int = 384) -> list[dict[str, Any]]:
         rows = self._conn.execute(
-            "SELECT id, summary, content, bucket_id, timestamp, confidence, is_stale FROM nodes"
+            "SELECT id, summary, content, summary_vector, content_vector, "
+            "bucket_id, timestamp, confidence, is_stale FROM nodes"
         ).fetchall()
         return [
             {
                 "id": r[0], "summary": r[1], "content": r[2],
-                "bucket_id": r[3], "timestamp": r[4],
-                "confidence": r[5], "is_stale": bool(r[6]),
+                "summary_vector": _blob_to_vector(r[3], dim) if r[3] else None,
+                "content_vector": _blob_to_vector(r[4], dim) if r[4] else None,
+                "bucket_id": r[5], "timestamp": r[6],
+                "confidence": r[7], "is_stale": bool(r[8]),
             }
             for r in rows
         ]

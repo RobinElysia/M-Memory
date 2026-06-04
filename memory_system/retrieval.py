@@ -58,13 +58,17 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         self._llm = llm
         self._persistence = persistence
 
-        # Dimension validation — prevent silent crashes from config mismatch
+        # Dimension validation
         if config.embedding_dim != vector_store.dim:
             raise ValueError(
                 f"Config embedding_dim ({config.embedding_dim}) != "
                 f"vector_store.dim ({vector_store.dim}). "
                 f"Set config.embedding_dim = {vector_store.dim} to match."
             )
+
+        # Restore state from persistence if available
+        if self._persistence is not None:
+            self._restore_from_persistence()
 
         # BucketManager is composed, not injected — the engine owns it
         self._bucket_manager = BucketManagerImpl(
@@ -173,6 +177,47 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
             self._persistence.save_bucket(bucket)
 
         return node.id
+
+    def _restore_from_persistence(self) -> None:
+        """Load nodes and buckets from persistence store after restart."""
+        if self._persistence is None:
+            return
+        dim = self._config.embedding_dim
+        node_data = self._persistence.load_all_nodes(dim)
+        for nd in node_data:
+            node = MemoryNode(
+                id=nd["id"],
+                summary=nd["summary"],
+                content=nd["content"],
+                summary_vector=nd.get("summary_vector"),
+                content_vector=nd.get("content_vector"),
+                timestamp=nd["timestamp"],
+                confidence=nd["confidence"],
+                bucket_id=nd.get("bucket_id", ""),
+            )
+            node.is_stale = nd.get("is_stale", False)
+            self._nodes[node.id] = node
+
+        bucket_data = self._persistence.load_all_buckets()
+        for bd in bucket_data:
+            bucket = Bucket(
+                id=bd["id"],
+                node_ids=[],
+                created_at=bd["created_at"],
+                last_write_at=bd["last_write_at"],
+                last_query_at=bd["last_query_at"],
+            )
+            bucket.is_dormant = bd.get("is_dormant", False)
+            # Rebuild node_ids list from loaded nodes
+            for node in self._nodes.values():
+                if node.bucket_id == bucket.id:
+                    bucket.node_ids.append(node.id)
+            self._bucket_manager._buckets[bucket.id] = bucket
+
+        logger.info(
+            "Restored %d nodes, %d buckets from persistence",
+            len(self._nodes), len(self._bucket_manager._buckets),
+        )
 
     def search(
         self,
@@ -306,13 +351,20 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         bucket_scores.sort(key=lambda x: x[1], reverse=True)
         relevant_buckets = {bid for bid, _ in bucket_scores[:self._config.bucket.top_m]}
 
-        # Step 2: Score nodes — prioritize keyword-matched buckets,
+        # Step 2: Score nodes — prioritize keyword-matched buckets.
+        # Cap global scan to prevent O(N) degradation at scale.
+        _max_global_scan = 500
+        scanned = 0
+
         # fall back to global search if bucket filter yields too few results
         scored: list[tuple[MemoryNode, float]] = []
         bucket_filtered: list[tuple[MemoryNode, float]] = []
         global_results: list[tuple[MemoryNode, float]] = []
 
         for node in self._nodes.values():
+            if scanned >= _max_global_scan:
+                break
+            scanned += 1
             content_lower = node.content.lower()
             summary_lower = node.summary.lower()
             content_hits = sum(1 for kw in keywords if kw in content_lower)

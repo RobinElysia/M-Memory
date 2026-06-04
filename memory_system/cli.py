@@ -30,7 +30,7 @@ def main() -> None:
             graph_store=NetworkXGraphStore(),
             llm=FakeLLMAdapter(),
         )
-        nid = engine.ingest("test fact", "The sky is blue", confidence=0.9)
+        _ = engine.ingest("test fact", "The sky is blue", confidence=0.9)
         result = engine.search("sky")
         found = any("blue" in n.content for n in result.nodes)
         if found:
