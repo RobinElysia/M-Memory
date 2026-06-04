@@ -66,10 +66,6 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
                 f"Set config.embedding_dim = {vector_store.dim} to match."
             )
 
-        # Restore state from persistence if available
-        if self._persistence is not None:
-            self._restore_from_persistence()
-
         # BucketManager is composed, not injected — the engine owns it
         self._bucket_manager = BucketManagerImpl(
             config=config,
@@ -82,6 +78,10 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         self._nodes: dict[str, MemoryNode] = {}
         # Thread safety — write lock for ingest operations
         self._write_lock = threading.Lock()
+
+        # Restore state from persistence if available
+        if self._persistence is not None:
+            self._restore_from_persistence()
 
     # ── MemoryRetrievalEngine interface ─────────────────────────────────
 

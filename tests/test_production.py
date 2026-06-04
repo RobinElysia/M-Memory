@@ -55,6 +55,48 @@ class TestPersistence:
         assert nodes == []
         store.close()
 
+    def test_persistence_round_trip(self):
+        """Verify engine restores state from persistence after simulated restart."""
+        import os
+        from memory_system.persistence import PersistenceStore
+        from memory_system.config import MemorySystemConfig
+        from memory_system.graph_engine import NetworkXGraphStore
+        from memory_system.fake_llm import FakeLLMAdapter
+        from memory_system.vector_store import HashVectorStore
+        from memory_system.retrieval import MemoryRetrievalEngineImpl
+
+        db_path = "test_roundtrip.db"
+
+        # ── First session: ingest ──
+        config = MemorySystemConfig()
+        config.embedding_dim = 1536
+        store = PersistenceStore(db_path)
+        engine1 = MemoryRetrievalEngineImpl(
+            config=config, vector_store=HashVectorStore(dim=1536),
+            graph_store=NetworkXGraphStore(), llm=FakeLLMAdapter(),
+            persistence=store,
+        )
+        nid = engine1.ingest("hello", "Hello world", confidence=0.9)
+
+        store.close()
+
+        # ── Simulate restart: new engine, same db ──
+        store2 = PersistenceStore(db_path)
+        engine2 = MemoryRetrievalEngineImpl(
+            config=config, vector_store=HashVectorStore(dim=1536),
+            graph_store=NetworkXGraphStore(), llm=FakeLLMAdapter(),
+            persistence=store2,
+        )
+        result = engine2.search("hello")
+        found = any(nid == n.id or "Hello" in n.content for n in result.nodes)
+        assert found, "Restored engine should find ingested node"
+
+        store2.close()
+        try:
+            os.remove(db_path)
+        except PermissionError:
+            pass  # Windows file lock delay
+
     def test_save_and_load_node(self):
         import time
 
