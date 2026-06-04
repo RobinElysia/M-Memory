@@ -7,13 +7,13 @@ import time
 import numpy as np
 import pytest
 
+from memory_system.bucket_manager import BucketManagerImpl
 from memory_system.cleanup import CleanupScheduler
 from memory_system.config import MemorySystemConfig
 from memory_system.fake_llm import FakeLLMAdapter, create_conflict_response
 from memory_system.graph_engine import NetworkXGraphStore
-from memory_system.models import Bucket, Medoid, MemoryNode
+from memory_system.models import Medoid, MemoryNode
 from memory_system.vector_store import HashVectorStore
-from memory_system.bucket_manager import BucketManagerImpl
 
 
 class TestCleanupScheduler:

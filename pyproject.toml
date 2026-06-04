@@ -19,10 +19,8 @@ classifiers = [
 dependencies = [
     "numpy>=1.24", # 向量运算
     "openai>=1.0", # LLM 适配（可按需替换）
-    "structlog>=23.0", # 结构化日志
     "networkx>=3.0", # 图存储与游走
     "sentence-transformers",
-    "scikit-learn>=1.8.0",
 ]
 
 [project.optional-dependencies]

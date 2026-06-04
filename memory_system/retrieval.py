@@ -352,8 +352,9 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
             else _default_topic_words
         )
         if len(scored) >= 2:
-            for i in range(len(scored)):
-                for j in range(i + 1, len(scored)):
+            limit = min(len(scored), 20)  # cap pair-wise
+            for i in range(limit):
+                for j in range(i + 1, limit):
                     na, sa = scored[i]
                     nb, sb = scored[j]
                     if sa < 1.0 or sb < 1.0:

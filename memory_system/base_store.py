@@ -15,6 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from memory_system.interfaces import VectorStore
+from memory_system.utils import cosine_sim
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +107,5 @@ class BaseNumpyVectorStore(VectorStore, ABC):
     def _cosine_similarity(
         a: NDArray[np.float32], b: NDArray[np.float32]
     ) -> float:
-        a_norm = np.linalg.norm(a)
-        b_norm = np.linalg.norm(b)
-        if a_norm < 1e-8 or b_norm < 1e-8:
-            return 0.0
-        return float(np.dot(a, b) / (a_norm * b_norm))
+        return cosine_sim(a, b)
+

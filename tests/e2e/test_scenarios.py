@@ -9,8 +9,6 @@ constructed vectors rather than hash-based embeddings where needed.
 
 from __future__ import annotations
 
-import time
-
 import numpy as np
 import pytest
 
@@ -24,7 +22,6 @@ from memory_system.graph_engine import NetworkXGraphStore
 from memory_system.models import MemoryNode
 from memory_system.retrieval import MemoryRetrievalEngineImpl
 from memory_system.vector_store import HashVectorStore
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Helpers

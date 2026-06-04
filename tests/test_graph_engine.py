@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from memory_system.graph_engine import NetworkXGraphStore
-from memory_system.models import Edge, EdgeType, TraversalPath
+from memory_system.models import EdgeType
 
 
 class TestNetworkXGraphStore:

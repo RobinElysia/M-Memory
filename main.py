@@ -1,6 +1,4 @@
-"""Entry point — delegates to CLI module."""
-
+"""Entry point."""
 from memory_system.cli import main
-
 if __name__ == "__main__":
     main()
