@@ -204,13 +204,22 @@ class BucketManagerImpl(BucketManager):
     def split_bucket(self, bucket: Bucket) -> list[Bucket]:
         """Split a bucket into two sub-buckets via spectral clustering.
 
-        Builds a pairwise cosine similarity matrix for all nodes in the bucket,
-        computes the second eigenvector of the Laplacian, and partitions nodes
-        by sign.  Each partition becomes a new bucket with its own Medoid.
+        Requires semantic embeddings (``is_semantic() == True``). If the
+        vector store lacks semantic capability, returns the bucket unchanged
+        with a warning — splitting with random hash vectors would produce
+        meaningless partitions.
 
         Returns the original bucket unchanged if it has fewer than
-        ``split_threshold`` nodes or if the partition is degenerate.
+        ``split_threshold`` nodes, if embeddings are non-semantic, or if
+        the partition is degenerate.
         """
+        if not self._vector_store.is_semantic():
+            logger.warning(
+                "split_bucket skipped: embeddings are non-semantic. "
+                "Use LocalEmbeddingStore or OpenAIEmbeddingStore."
+            )
+            return [bucket]
+
         if len(bucket.node_ids) < self._config.bucket.split_threshold:
             return [bucket]
 

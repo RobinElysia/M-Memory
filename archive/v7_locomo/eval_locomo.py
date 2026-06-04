@@ -3,7 +3,7 @@
 import json, os, time, re, sys, random
 from collections import Counter
 
-os.environ["DEEPSEEK_API_KEY"] = "sk-768c26bb7779496e907781f52d82e526"
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 os.environ["M_MEMORY_LOG_LEVEL"] = "ERROR"
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"

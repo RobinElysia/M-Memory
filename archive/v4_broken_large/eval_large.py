@@ -3,7 +3,7 @@
 import json, os, sys, time, random
 from dataclasses import dataclass, field
 
-os.environ["DEEPSEEK_API_KEY"] = "sk-768c26bb7779496e907781f52d82e526"
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 os.environ["M_MEMORY_LOG_LEVEL"] = "ERROR"
 
 from memory_system.config import MemorySystemConfig

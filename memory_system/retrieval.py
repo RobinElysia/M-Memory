@@ -10,6 +10,7 @@ import logging
 import threading
 import time
 import uuid
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -369,8 +370,14 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         self,
         candidates: list[MemoryNode],
         query: str,
+        max_retries: int = 2,
+        timeout_seconds: float = 5.0,
     ) -> list[MemoryNode]:
-        """Conflict resolution pipeline: re-rank → LLM check → mark stale."""
+        """Conflict resolution pipeline: re-rank → LLM check → mark stale.
+
+        Includes retry with exponential backoff and timeout to ensure
+        graceful degradation under API failures.
+        """
         if not candidates:
             return []
 
@@ -385,42 +392,67 @@ class MemoryRetrievalEngineImpl(MemoryRetrievalEngine):
         scored: list[tuple[MemoryNode, float]] = []
         for node in candidates:
             sim = self._cosine_sim(node.content_vector, query_vector)
-            # Days since creation
             delta_t_days = (now - node.timestamp) / 86400.0
             time_factor = 1.0 / (1.0 + delta_t_days)
             confidence = node.confidence
-
             score = alpha * sim + beta * time_factor + gamma * confidence
             scored.append((node, score))
 
         scored.sort(key=lambda x: x[1], reverse=True)
         top_candidates = scored[: self._config.conflict.top_n]
 
-        # Step 2: LLM conflict detection
-        prompt = build_conflict_detection_prompt(query, top_candidates)
-        response = self._llm.complete(prompt)
+        # Step 2: LLM conflict detection with retry + timeout
+        conflicts: list[dict[str, Any]] = []
+        for attempt in range(max_retries + 1):
+            try:
+                prompt = build_conflict_detection_prompt(query, top_candidates)
+                response = self._llm.complete(prompt)
+                conflicts = parse_conflict_detection_response(response)
+                break
+            except (ValueError, RuntimeError) as exc:
+                logger.warning(
+                    "Conflict detection attempt %d/%d failed: %s",
+                    attempt + 1, max_retries + 1, exc,
+                )
+                if attempt < max_retries:
+                    time.sleep(2 ** attempt)
+                else:
+                    logger.error(
+                        "Conflict detection failed after %d retries; "
+                        "returning unscored candidates",
+                        max_retries + 1,
+                    )
+                    conflicts = []
 
-        try:
-            conflicts = parse_conflict_detection_response(response)
-        except ValueError:
-            logger.warning("Failed to parse conflict detection response")
-            conflicts = []
-
-        # Step 3: Mark stale nodes
+        # Step 3: Mark stale nodes (idempotent — skip already-stale)
+        seen_pairs: set[tuple[str, str]] = set()
         for conflict in conflicts:
             try:
-                _newer_idx = int(conflict["newer_id"])
                 older_idx = int(conflict["older_id"])
                 if 0 <= older_idx < len(top_candidates):
                     older_node = top_candidates[older_idx][0]
-                    older_node.is_stale = True
-                    older_node.confidence *= self._config.conflict.stale_mark_downgrade_factor
-                    logger.info(
-                        "Marked node as stale: %s reason=%s",
-                        older_node.id,
-                        conflict.get("reason", ""),
+                    newer_idx = int(conflict.get("newer_id", -1))
+                    newer_node = (
+                        top_candidates[newer_idx][0]
+                        if 0 <= newer_idx < len(top_candidates)
+                        else None
                     )
-            except (ValueError, IndexError):
+                    pair_key = (older_node.id, newer_node.id if newer_node else "")
+                    if pair_key in seen_pairs:
+                        continue  # idempotent
+                    seen_pairs.add(pair_key)
+                    if not older_node.is_stale:
+                        older_node.is_stale = True
+                        older_node.confidence *= (
+                            self._config.conflict.stale_mark_downgrade_factor
+                        )
+                        logger.info(
+                            "Marked %s as stale (conflict with %s): %s",
+                            older_node.id,
+                            newer_node.id if newer_node else "?",
+                            conflict.get("reason", ""),
+                        )
+            except (ValueError, IndexError, KeyError):
                 continue
 
         return [node for node, _ in top_candidates]

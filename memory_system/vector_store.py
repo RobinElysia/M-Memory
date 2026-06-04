@@ -7,6 +7,7 @@ Deterministic (no random), suitable as the default and for testing.
 from __future__ import annotations
 
 import hashlib
+import warnings
 from typing import Any
 
 import numpy as np
@@ -15,8 +16,8 @@ from numpy.typing import NDArray
 from memory_system.interfaces import VectorStore
 
 
-class NumpyVectorStore(VectorStore):
-    """In-memory vector store backed by NumPy with cosine similarity.
+class HashVectorStore(VectorStore):
+    """In-memory hash-based vector store. NOT SEMANTIC. For testing only.
 
     Embedding is done via a deterministic hash-based projection (NOT a real
     language model) — this makes tests reproducible.  For production, inject
@@ -161,3 +162,17 @@ class NumpyVectorStore(VectorStore):
         if a_norm < 1e-8 or b_norm < 1e-8:
             return 0.0
         return float(np.dot(a, b) / (a_norm * b_norm))
+
+
+# Backward compatibility alias with deprecation warning
+class NumpyVectorStore(HashVectorStore):
+    """Deprecated alias for HashVectorStore. Use LocalEmbeddingStore instead."""
+
+    def __init__(self, dim: int = 1536) -> None:
+        warnings.warn(
+            "NumpyVectorStore is deprecated. Use LocalEmbeddingStore for "
+            "semantic embeddings or HashVectorStore for testing.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(dim=dim)

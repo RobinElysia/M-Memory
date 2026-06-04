@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Semantic eval: LocalEmbeddingStore → _semantic_search() activates fully."""
 import json, os, time, random
-os.environ["DEEPSEEK_API_KEY"] = "sk-768c26bb7779496e907781f52d82e526"
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 os.environ["M_MEMORY_LOG_LEVEL"] = "ERROR"
 
 from memory_system.config import MemorySystemConfig
